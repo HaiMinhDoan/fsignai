@@ -94,6 +94,13 @@ services:
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     networks:
       - web
+    # Mở cổng ra máy chủ để vào thẳng bằng IP khi chưa có tên miền: http://<ip-server>:5173
+    #
+    # ⚠️ Khi đã có tên miền + SSL thì NÊN BỎ dòng ports này của CMS. Vào bằng IP là chạy HTTP
+    # trần, mật khẩu quản trị đi qua mạng dưới dạng chữ thường. Ngoài ra Docker tự thêm luật
+    # iptables khi publish cổng, nên tường lửa UFW KHÔNG chặn được cổng này.
+    ports:
+      - "5173:5173"
     depends_on:
       - fsign-backend
     mem_limit: 256m
@@ -111,6 +118,11 @@ services:
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     networks:
       - web
+    # Vào thẳng bằng IP khi chưa có tên miền: http://<ip-server>:5174
+    # Giữ được cả sau khi có tên miền (trang học không có gì bí mật), nhưng lưu ý chạy HTTP
+    # trần thì camera KHÔNG bật được trên máy khác — xem ghi chú trong DEPLOY.md.
+    ports:
+      - "5174:5174"
     depends_on:
       - fsign-backend
     mem_limit: 256m

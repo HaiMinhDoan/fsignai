@@ -51,15 +51,56 @@ với `Host: api.signai.vn` trả về `{"status":"UP"}`. Tomcat từ chối Hos
 không hợp lệ trong tên miền theo RFC 1123. Vì vậy mọi container ở đây đặt tên bằng **gạch ngang**
 (`fsign-backend`), đừng đổi lại thành `fsign_backend`.
 
+## Vào thẳng bằng IP khi chưa có tên miền
+
+Hai container frontend đã mở cổng ra máy chủ:
+
+- Portal: `http://<ip-server>:5174`
+- CMS:    `http://<ip-server>:5173`
+
+API vẫn chạy bình thường vì nginx trong chính container chuyển tiếp sang backend — đã đo thật.
+
+### ⚠️ Vào bằng IP thì CHẤM ĐIỂM AI và GƯƠNG SOI không dùng được
+
+Trình duyệt chỉ cho phép `getUserMedia` (mở camera) ở **ngữ cảnh an toàn**: HTTPS, hoặc `localhost`.
+Vào bằng `http://<ip>:5174` thì `navigator.mediaDevices` **không tồn tại**, nút camera sẽ báo
+"Chưa mở được camera" dù camera vẫn tốt. Đã đo ngày 20.09.2026:
+
+| Cách vào | `isSecureContext` | Có API camera |
+|---|---|---|
+| `http://192.168.1.16:5174` | `false` | **không** |
+| `http://localhost:5174` | `true` | có |
+
+Mọi thứ khác (từ điển, xem video, khoá học, trò chơi, kiểm tra) vẫn chạy đủ. Muốn dùng camera thì
+phải có tên miền + SSL — hoặc mở trên chính máy chủ bằng `localhost`.
+
+### ⚠️ Cổng 5173 (CMS) nên đóng lại khi đã có tên miền
+
+Vào bằng IP là HTTP trần: mật khẩu quản trị đi qua mạng dưới dạng chữ thường. Thêm nữa, Docker tự
+ghi luật iptables khi publish cổng nên **UFW không chặn được** — cổng này mở ra Internet thật sự.
+Khi đã trỏ tên miền xong, xoá khối `ports` của `fsign-cms` trong `docker-compose.yml`.
+
 ## Trỏ tên miền trong nginx-proxy-manager
 
-Thêm Proxy Host, phần Forward:
+Tên miền dự án: **`fsignai.com`** (name server ở TenTen: `ns-a1/a2/a3.tenten.vn`).
 
-| Tên miền | Forward Hostname | Forward Port |
-|---|---|---|
-| `hoc.signai.vn` (portal) | `fsign-portal` | `5174` |
-| `admin.signai.vn` (CMS) | `fsign-cms` | `5173` |
-| `api.signai.vn` (tuỳ chọn) | `fsign-backend` | `8080` |
+**Bước 1 — DNS ở TenTen.** Thêm ba bản ghi A, tất cả cùng trỏ về IP máy chủ:
+
+| Tên | Loại | Giá trị | Dùng cho |
+|---|---|---|---|
+| `@` | A | `171.244.142.43` | portal (trang học) |
+| `www` | A | `171.244.142.43` | portal |
+| `admin` | A | `171.244.142.43` | CMS quản trị |
+
+Ô **Tên chỉ điền phần con**, không gõ cả tên miền. Ô Độ ưu tiên để trống (chỉ MX mới cần).
+
+**Bước 2 — Proxy Host trong nginx-proxy-manager:**
+
+| Tên miền | Forward Hostname | Forward Port | Websockets |
+|---|---|---|---|
+| `fsignai.com`, `www.fsignai.com` | `fsign-portal` | `5174` | bật |
+| `admin.fsignai.com` | `fsign-cms` | `5173` | **bật** |
+| `api.fsignai.com` (tuỳ chọn, cho Swagger) | `fsign-backend` | `8080` | bật |
 
 Bật **Websockets Support** cho CMS (vben dùng WS cho vài màn hình), và nhớ tăng
 `client_max_body_size` trong Advanced của NPM nếu nạp video lớn qua CMS:
