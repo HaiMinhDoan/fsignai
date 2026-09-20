@@ -18,7 +18,18 @@ let dynamicViewsModules: Record<string, () => Promise<Recordable>>;
 
 // Dynamic introduction
 function asyncImportRoute(routes: AppRouteRecordRaw[] | undefined) {
-  dynamicViewsModules = dynamicViewsModules || import.meta.glob('../../views/**/*.{vue,tsx}');
+  // Loại trừ các trang trình diễn của vben giống như bên routes/index.ts.
+  // Lệnh glob này gom MỌI view thành chunk trong bản build, kể cả view không
+  // route nào trỏ tới — nên nếu không loại trừ, hơn 2.000 dòng tiếng Trung của
+  // trang demo vẫn nằm trong bản phát hành dù người dùng không mở được.
+  dynamicViewsModules =
+    dynamicViewsModules ||
+    import.meta.glob([
+      '../../views/**/*.{vue,tsx}',
+      '!../../views/demo/**',
+      '!../../views/form-design/**',
+      '!../../views/hooks/**',
+    ]);
   if (!routes) return;
   routes.forEach((item) => {
     if (!item.component && item.meta?.frameSrc) {
@@ -62,7 +73,7 @@ function dynamicImport(
     );
     return;
   } else {
-    warn('在src/views/下找不到`' + component + '.vue` 或 `' + component + '.tsx`, 请自行创建!');
+    warn('Không tìm thấy `' + component + '.vue` hoặc `' + component + '.tsx` trong src/views/, hãy tạo tệp này!');
     return EXCEPTION_COMPONENT;
   }
 }
@@ -81,7 +92,7 @@ export function transformObjToRoute<T = AppRouteModule>(routeList: AppRouteModul
 
         //某些情况下如果name如果没有值， 多个一级路由菜单会导致页面404
         if (!route.name) {
-          warn('找不到菜单对应的name, 请检查数据!' + JSON.stringify(route));
+          warn('Route thiếu thuộc tính name, hãy kiểm tra lại dữ liệu menu! ' + JSON.stringify(route));
         }
         route.name = `${route.name}Parent`;
         // 重定向到当前路由，以防空白页面
@@ -93,7 +104,7 @@ export function transformObjToRoute<T = AppRouteModule>(routeList: AppRouteModul
         route.meta = meta;
       }
     } else {
-      warn('请正确配置路由：' + route?.name + '的component属性');
+      warn('Route ' + route?.name + ' thiếu hoặc sai thuộc tính component');
     }
     route.children && asyncImportRoute(route.children);
   });

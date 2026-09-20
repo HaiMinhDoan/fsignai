@@ -1,6 +1,7 @@
 package com.sunmoon.backend.repository;
 
 import com.sunmoon.backend.entity.dictionary.Sign;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -40,4 +41,17 @@ public interface SignRepository extends JpaRepository<Sign, UUID>, JpaSpecificat
             WHERE e.isActive = true AND e.buildStatus = 'READY' AND s.id IN :signIds
             """)
     List<UUID> findIdsHavingReadyExemplar(@Param("signIds") List<UUID> signIds);
+
+    /** Từ chưa từng ôn flashcard bằng tài khoản này - lấp chỗ trống khi chưa đủ thẻ đến hạn */
+    @Query("""
+            SELECT s FROM Sign s
+            WHERE s.isPublished = true
+              AND (:topicId IS NULL OR s.primaryTopic.id = :topicId)
+              AND NOT EXISTS (
+                  SELECT 1 FROM FlashcardReview fr WHERE fr.sign = s AND fr.user.id = :userId
+              )
+            ORDER BY s.createdAt ASC
+            """)
+    List<Sign> findNewForFlashcards(@Param("userId") UUID userId, @Param("topicId") UUID topicId,
+                                     Pageable pageable);
 }

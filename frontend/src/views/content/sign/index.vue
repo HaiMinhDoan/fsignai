@@ -2,14 +2,23 @@
   <PageWrapper dense contentFullHeight fixedHeight>
     <BasicTable @register="registerTable" :rowSelection="rowSelection">
       <template #toolbar>
-        <a-button type="primary" @click="handleCreate">Thêm từ vựng</a-button>
-        <a-button @click="openImportModal(true, {})">Nhập từ Excel</a-button>
-        <a-button :disabled="!selectedRowKeys.length" @click="handleBulkPublish(true)">
+        <Button type="primary" @click="handleCreate">Thêm từ vựng</Button>
+        <Button @click="openImportModal(true, {})">Nhập từ Excel</Button>
+        <Button @click="openAiJobModal(true, {})">Sinh mẫu AI</Button>
+        <Button :disabled="!selectedRowKeys.length" @click="handleBulkPublish(true)">
           Xuất bản ({{ selectedRowKeys.length }})
-        </a-button>
-        <a-button :disabled="!selectedRowKeys.length" @click="handleBulkPublish(false)">
+        </Button>
+        <Button :disabled="!selectedRowKeys.length" @click="handleBulkPublish(false)">
           Gỡ xuất bản
-        </a-button>
+        </Button>
+        <Button
+          type="primary"
+          ghost
+          :disabled="!selectedRowKeys.length"
+          @click="openAssignModal(true, { signIds: selectedRowKeys })"
+        >
+          Gán chủ đề
+        </Button>
       </template>
 
       <template #bodyCell="{ column, record }">
@@ -44,10 +53,13 @@
 
     <SignDrawer @register="registerDrawer" @success="handleSuccess" />
     <SignImportModal @register="registerImportModal" @success="handleSuccess" />
+    <AssignTopicsModal @register="registerAssignModal" @success="handleSuccess" />
+    <AiExemplarJobModal @register="registerAiJobModal" @success="handleSuccess" />
   </PageWrapper>
 </template>
 
 <script lang="ts" setup>
+  import { Button } from '@/components/Button';
   import { ref, computed, unref } from 'vue';
   import { BasicTable, useTable, TableAction } from '@/components/Table';
   import { PageWrapper } from '@/components/Page';
@@ -57,6 +69,8 @@
 
   import SignDrawer from './SignDrawer.vue';
   import SignImportModal from './SignImportModal.vue';
+  import AssignTopicsModal from './AssignTopicsModal.vue';
+  import AiExemplarJobModal from './AiExemplarJobModal.vue';
   import { columns, searchFormSchema } from './sign.data';
   import { signSearchApi, signDeleteApi, signPublishApi } from '@/api/content/sign';
   import type { SignModel } from '@/api/content/model/contentModel';
@@ -66,6 +80,8 @@
   const { createMessage } = useMessage();
   const [registerDrawer, { openDrawer }] = useDrawer();
   const [registerImportModal, { openModal: openImportModal }] = useModal();
+  const [registerAssignModal, { openModal: openAssignModal }] = useModal();
+  const [registerAiJobModal, { openModal: openAiJobModal }] = useModal();
 
   const selectedRowKeys = ref<string[]>([]);
   const rowSelection = computed(

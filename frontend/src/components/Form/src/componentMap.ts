@@ -31,6 +31,7 @@ import ApiTransfer from './components/ApiTransfer.vue';
 import { BasicUpload, ImageUpload } from '@/components/Upload';
 import { StrengthMeter } from '@/components/StrengthMeter';
 import { IconPicker } from '@/components/Icon';
+import { ColorPicker } from '@/components/ColorPicker';
 import { CountdownInput } from '@/components/CountDown';
 import { BasicTitle } from '@/components/Basic';
 import { CropperAvatar } from '@/components/Cropper';
@@ -71,6 +72,7 @@ componentMap.set('TimePicker', TimePicker);
 componentMap.set('TimeRangePicker', TimePicker.TimeRangePicker);
 componentMap.set('StrengthMeter', StrengthMeter);
 componentMap.set('IconPicker', IconPicker);
+componentMap.set('ColorPicker', ColorPicker);
 componentMap.set('InputCountDown', CountdownInput);
 
 componentMap.set('Upload', BasicUpload);

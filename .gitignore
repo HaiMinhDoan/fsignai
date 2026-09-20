@@ -1,0 +1,7 @@
+__pycache__/
+
+# Cấu hình triển khai: chứa mật khẩu CSDL, khoá MinIO, App Password email.
+# Chỉ commit .env.example (đã thay bằng giá trị giả).
+# .env
+.env.build
+.env.local

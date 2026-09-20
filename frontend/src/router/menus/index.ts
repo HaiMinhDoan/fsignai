@@ -10,7 +10,18 @@ import { router } from '@/router';
 import { PermissionModeEnum } from '@/enums/appEnum';
 import { pathToRegexp } from 'path-to-regexp';
 
-const modules = import.meta.glob('../routes/modules/**/*.ts', { eager: true });
+// Danh sách loại trừ phải GIỐNG HỆT bên src/router/routes/index.ts.
+// Menu và route được dựng từ hai lệnh glob riêng: bỏ ở một nơi mà quên nơi kia
+// thì menu vẫn hiện mục demo nhưng bấm vào sẽ ra trang 404.
+const modules = import.meta.glob(
+  [
+    '../routes/modules/**/*.ts',
+    '!../routes/modules/demo/**',
+    '!../routes/modules/form-design/**',
+    '!../routes/modules/hooks/**',
+  ],
+  { eager: true },
+);
 
 export const menuModules: MenuModule[] = [];
 

@@ -1,0 +1,278 @@
+/**
+ * Token của web học tập — lấy trực tiếp từ Figma "web học sign language"
+ * (file eoUFKOLUIBRg4R1NUj7aO7). Khai báo MỘT chỗ duy nhất.
+ *
+ * Hai lớp tên:
+ *   --sk-*   token gốc, đọc thẳng ra từ Figma
+ *   --si-*   tên cũ của hệ thống, nay ÁNH XẠ sang --sk-*. Giữ lại để các
+ *            màn hình viết trước đó không phải sửa cùng lúc; code mới nên
+ *            dùng --sk-*.
+ *
+ * Thương hiệu vẫn là SignAI (Figma ghi "SignKids" nhưng người dùng chốt
+ * chỉ lấy kiểu dáng, không đổi tên).
+ */
+:root {
+  /* Ép trình duyệt vẽ thanh cuộn và ô nhập theo bảng sáng. Thiếu dòng này
+     thì máy đang để chế độ tối sẽ tự bôi đen ô nhập dù nền trang vẫn sáng */
+  color-scheme: light;
+
+  /* ===== Nền (Figma) ===== */
+  --sk-bg: #f9f9ff;
+  --sk-surface: #ffffff;
+  --sk-lavender: #f0f3ff;
+  --sk-lavender-2: #e7eeff;
+  --sk-blue-100: #dee8ff;
+  --sk-blue-150: #d8e3fb;
+  --sk-sky: #cce5ff;
+
+  /* ===== Nhấn ===== */
+  --sk-amber: #f59e0b; /* màu hành động chính của Figma */
+  --sk-peach: #ffddb8;
+  --sk-mint: #85f8c4;
+  --sk-green: #50c594;
+  --sk-sky-strong: #5bb8fe;
+
+  /* ===== Chữ ===== */
+  --sk-ink: #111c2d; /* chữ chính */
+  --sk-brown: #534434; /* chữ phụ, nav */
+  --sk-brown-dark: #2a1700;
+  --sk-amber-ink: #855300; /* chữ trên nền cam/đào */
+  --sk-amber-mid: #613b00;
+  --sk-blue-ink: #006398; /* liên kết, chữ trên nền xanh */
+  --sk-blue-dark: #001d31;
+  --sk-green-ink: #006c4a; /* chữ trên nền mint */
+  --sk-green-dark: #002114;
+
+  /* ===== Hình khối ===== */
+  --sk-r-pill: 9999px; /* dùng nhiều nhất trong Figma */
+  --sk-r-card: 32px;
+  --sk-r-block: 48px;
+  --sk-tap: 48px; /* vùng bấm tối thiểu cho tay bé */
+
+  --sk-shadow: 0 2px 8px rgba(17, 28, 45, 0.06);
+  --sk-shadow-card: 0 4px 16px rgba(17, 28, 45, 0.08);
+  --sk-shadow-lift: 0 12px 28px rgba(17, 28, 45, 0.14);
+
+  /* ===== Chữ ===== */
+  --sk-font-head: 'Quicksand', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sk-font-body: 'Nunito Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sk-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ===== Khung video: CỐ Ý không màu =====
+     Quy tắc §2.1 vẫn giữ nguyên qua lần đổi thiết kế này. Figma phủ pastel
+     khắp trang nhưng mắt bé vẫn phải đọc được hình bàn tay, nên bên trong
+     khung video chỉ có xám trung tính. */
+  --sk-stage: #eaf0f4;
+  --sk-stage-border: #d3e0e7;
+
+  /* ===== Ánh xạ tên cũ ===== */
+  --si-primary: var(--sk-blue-ink);
+  --si-primary-dark: var(--sk-blue-dark);
+  --si-primary-light: var(--sk-blue-100);
+  --si-secondary: var(--sk-sky-strong);
+  --si-success: var(--sk-green-ink);
+  --si-streak: var(--sk-amber);
+  --si-warning: var(--sk-amber-ink);
+  --si-danger: #c4503f;
+
+  --si-bg: var(--sk-bg);
+  --si-surface: var(--sk-surface);
+  --si-surface-2: var(--sk-stage);
+  --si-text: var(--sk-ink);
+  --si-text-muted: var(--sk-brown);
+  --si-border: var(--sk-blue-150);
+
+  --si-radius: 12px;
+  --si-radius-lg: var(--sk-r-card);
+  --si-kid-radius: var(--sk-r-card);
+  --si-kid-radius-lg: var(--sk-r-block);
+  --si-kid-tap: var(--sk-tap);
+  --si-kid-cream: var(--sk-lavender);
+  --si-kid-sun: var(--sk-peach);
+  --si-kid-sun-deep: var(--sk-amber);
+  --si-kid-peach: var(--sk-peach);
+  --si-kid-mint: var(--sk-mint);
+  --si-kid-sky: var(--sk-sky);
+  --si-kid-lilac: var(--sk-lavender-2);
+  --si-kid-shadow: var(--sk-shadow-card);
+  --si-kid-shadow-lift: var(--sk-shadow-lift);
+  --si-font-body: var(--sk-font-body);
+  --si-font-mono: var(--sk-font-mono);
+}
+
+/**
+ * Bản tối — CHỈ bật khi có người chủ động chọn (đặt data-theme="dark" lên thẻ
+ * <html>). Hiện chưa có nút nào bật nó.
+ *
+ * Trước đây tôi để khối này tự bật theo cài đặt hệ điều hành. Sai: Figma chỉ
+ * vẽ bản sáng, nên máy nào đang để chế độ tối là thấy một giao diện không
+ * giống thiết kế chút nào. Muốn dùng lại thì phải là một công tắc trong giao
+ * diện, không phải đoán ý người dùng qua cài đặt máy.
+ */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --sk-bg: #0d1420;
+  --sk-surface: #16202f;
+  --sk-lavender: #1b2637;
+  --sk-lavender-2: #202c40;
+  --sk-blue-100: #243349;
+  --sk-blue-150: #2b3950;
+  --sk-sky: #1e3c55;
+
+  --sk-amber: #f0a92e;
+  --sk-peach: #4a3320;
+  --sk-mint: #1f4d3c;
+  --sk-green: #3f9d77;
+  --sk-sky-strong: #64bcfd;
+
+  --sk-ink: #e8eef7;
+  --sk-brown: #c3b2a0;
+  --sk-brown-dark: #e8ddd2;
+  --sk-amber-ink: #f0c98a;
+  --sk-amber-mid: #d9ab6b;
+  --sk-blue-ink: #7cc4f5;
+  --sk-blue-dark: #b3ddf8;
+  --sk-green-ink: #7fdcb4;
+  --sk-green-dark: #b9efd7;
+
+  --sk-stage: #1a2432;
+  --sk-stage-border: #2b3950;
+
+  --sk-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --sk-shadow-card: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --sk-shadow-lift: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--sk-bg);
+  color: var(--sk-ink);
+  font-family: var(--sk-font-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tiêu đề dùng Quicksand đậm — đúng Figma, và nét tròn hợp mắt trẻ con */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--sk-font-head);
+  /* Quicksand trên Google Fonts chỉ có tới 700. Đặt 800 thì trình duyệt tự
+     làm đậm giả, nét bị nhoè — Figma ghi 800 nhưng 700 mới là nét thật */
+  font-weight: 700;
+  margin: 0;
+}
+h1 {
+  font-size: 40px;
+  letter-spacing: -0.5px;
+}
+h2 {
+  font-size: 32px;
+}
+h3 {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Dấu tiếng Việt bị cắt khi line-height quá chặt — không đặt dưới 1.4 */
+h1,
+h2,
+h3,
+h4,
+p,
+span,
+button,
+input,
+a {
+  line-height: 1.4;
+}
+
+a {
+  color: var(--sk-blue-ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+.si-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Viền focus dày dùng chung — bé điều hướng bằng Tab phải thấy rõ mình ở đâu */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--sk-sky-strong);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/**
+ * Có bé nhạy cảm tiền đình. Khi hệ điều hành bật giảm chuyển động, mọi hiệu
+ * ứng rút về đổi màu tức thì. Dấu ✓ và chữ xác nhận không bị ảnh hưởng vì
+ * chúng không phải animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/**
+ * Nút tròn chỉ có biểu tượng (chuông thông báo, thư viện, đăng xuất...).
+ *
+ * Để ở đây chứ KHÔNG để trong <style scoped> của DefaultLayout: style scoped chỉ áp cho phần tử
+ * trong template của chính component đó và phần tử gốc của component con. Nút chuông nằm sâu bên
+ * trong NotificationBell nên không nhận được style, và rơi về nút mặc định của trình duyệt —
+ * vuông, viền đen, lạc hẳn với các nút tròn bên cạnh.
+ */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--sk-r-pill);
+  border: none;
+  background: var(--sk-blue-100);
+  color: var(--sk-blue-dark);
+  cursor: pointer;
+  /* RouterLink cũng dùng class này nên phải tự bỏ gạch chân */
+  text-decoration: none;
+  padding: 0;
+  font: inherit;
+}
+.icon-btn:hover {
+  background: var(--sk-sky);
+}

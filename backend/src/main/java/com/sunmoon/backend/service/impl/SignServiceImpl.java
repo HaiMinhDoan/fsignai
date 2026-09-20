@@ -3,6 +3,7 @@ package com.sunmoon.backend.service.impl;
 import com.sunmoon.backend.constant.enums.*;
 import com.sunmoon.backend.dto.request.BaseFilterRequest;
 import com.sunmoon.backend.dto.request.FilterCriteria;
+import com.sunmoon.backend.dto.request.content.AssignTopicsRequest;
 import com.sunmoon.backend.dto.request.content.SignImportRequest;
 import com.sunmoon.backend.dto.request.content.SignRequest;
 import com.sunmoon.backend.dto.request.content.SignSearchRequest;
@@ -198,6 +199,71 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
         List<Sign> signs = signRepository.findAllById(ids);
         signs.forEach(s -> s.setIsPublished(published));
         signRepository.saveAll(signs);
+        return signs.size();
+    }
+
+    // ==================== GAN CHU DE HANG LOAT ====================
+
+    /**
+     * Gan chu de cho nhieu tu vung cung luc.
+     *
+     * Doc toan bo cap (sign, topic) da co trong MOT truy van roi loc trong bo nho,
+     * thay vi hoi CSDL cho tung cap. Voi lo 500 tu x 3 chu de, kieu hoi tung cap
+     * se thanh 1.500 truy van.
+     */
+    @Override
+    @Transactional
+    public int assignTopics(AssignTopicsRequest request) {
+        List<UUID> signIds = request.getSignIds().stream().distinct().toList();
+        List<UUID> topicIds = request.getTopicIds().stream().distinct().toList();
+
+        List<Sign> signs = signRepository.findAllById(signIds);
+        if (signs.size() != signIds.size()) {
+            throw new NotFoundException("Co tu vung khong ton tai trong danh sach da chon");
+        }
+        List<Topic> topics = topicRepository.findAllById(topicIds);
+        if (topics.size() != topicIds.size()) {
+            throw new NotFoundException("Co chu de khong ton tai trong danh sach da chon");
+        }
+
+        if (Boolean.TRUE.equals(request.getReplace())) {
+            signTopicRepository.deleteAllBySignIdIn(signIds);
+            // Xoa xong phai day xuong CSDL ngay, neu khong lenh INSERT ben duoi
+            // se chay truoc lenh DELETE dang nam trong hang doi cua Hibernate
+            // va dung khoa chinh (sign_id, topic_id).
+            entityManager.flush();
+        }
+
+        Set<String> existing = new HashSet<>();
+        if (!Boolean.TRUE.equals(request.getReplace())) {
+            for (SignTopic st : signTopicRepository.findAllBySignIdIn(signIds)) {
+                existing.add(st.getSign().getId() + "|" + st.getTopic().getId());
+            }
+        }
+
+        List<SignTopic> toInsert = new ArrayList<>();
+        for (Sign sign : signs) {
+            for (Topic topic : topics) {
+                if (existing.contains(sign.getId() + "|" + topic.getId())) {
+                    continue;
+                }
+                toInsert.add(SignTopic.builder()
+                        .id(new SignTopicId(sign.getId(), topic.getId()))
+                        .sign(sign)
+                        .topic(topic)
+                        .build());
+            }
+        }
+        signTopicRepository.saveAll(toInsert);
+
+        // Chu de chinh chi dat duoc khi nguoi dung chon dung mot chu de,
+        // vi khong co can cu nao de chon "chinh" trong nhieu chu de.
+        if (Boolean.TRUE.equals(request.getSetPrimary()) && topics.size() == 1) {
+            Topic primary = topics.get(0);
+            signs.forEach(s -> s.setPrimaryTopic(primary));
+            signRepository.saveAll(signs);
+        }
+
         return signs.size();
     }
 

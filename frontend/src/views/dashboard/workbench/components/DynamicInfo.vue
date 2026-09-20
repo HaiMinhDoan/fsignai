@@ -1,7 +1,7 @@
 <template>
-  <Card title="最新动态" v-bind="$attrs">
+  <Card title="Hoạt động gần đây" v-bind="$attrs">
     <template #extra>
-      <a-button type="link" size="small">更多</a-button>
+      <Button type="link" size="small">Xem thêm</Button>
     </template>
     <List item-layout="horizontal" :data-source="dynamicInfoItems">
       <template #renderItem="{ item }">
@@ -22,6 +22,7 @@
   </Card>
 </template>
 <script lang="ts" setup>
+  import { Button } from '@/components/Button';
   import { Card, List } from 'ant-design-vue';
   import { dynamicInfoItems } from './data';
   import Icon from '@/components/Icon/Icon.vue';

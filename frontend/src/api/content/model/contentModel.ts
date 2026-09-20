@@ -107,6 +107,38 @@ export interface TopicSaveParams {
   isPublished: boolean;
 }
 
+// ==================== Hướng dẫn từng bước ====================
+
+/** LEFT_HAND | RIGHT_HAND | BOTH_HANDS | FACE | MOUTH | SHOULDER | CHEST */
+export type BodyFocus =
+  | 'LEFT_HAND'
+  | 'RIGHT_HAND'
+  | 'BOTH_HANDS'
+  | 'FACE'
+  | 'MOUTH'
+  | 'SHOULDER'
+  | 'CHEST';
+
+export interface SignStepModel {
+  id: string;
+  signId: string;
+  stepOrder: number;
+  titleVi?: string;
+  descriptionVi: string;
+  bodyFocus?: BodyFocus;
+  holdSeconds?: number;
+  /** null khi biên tập viên mới soạn chữ, chưa gắn ảnh */
+  imageUrl?: string;
+}
+
+export interface SignStepSaveParams {
+  stepOrder: number;
+  titleVi?: string;
+  descriptionVi: string;
+  bodyFocus?: BodyFocus;
+  holdSeconds?: number;
+}
+
 // ==================== Video ký hiệu ====================
 
 export interface SignVideoModel {
@@ -263,4 +295,41 @@ export interface SignImportResult {
     wordVi?: string;
     message: string;
   }>;
+}
+
+// ==================== Chấm điểm AI: exemplar ====================
+
+export type ExemplarBuildStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED';
+
+/** Một mẫu chuẩn (sinh từ một video) dùng để so khớp khi chấm ký hiệu */
+export interface ExemplarModel {
+  id: string;
+  signVideoId?: string;
+  region: Region;
+  buildStatus: ExemplarBuildStatus;
+  buildError?: string;
+  frameCount?: number;
+  /** 0..1 — độ tin cậy MediaPipe theo dõi được người và tay trong video */
+  qualityScore?: number;
+  modelVersion: string;
+  isActive: boolean;
+  /** Đúng phiên bản đặc trưng hiện hành; false = mẫu cũ, cần sinh lại */
+  current: boolean;
+  updatedAt?: string;
+}
+
+export interface ExemplarJobStatus {
+  running: boolean;
+  total: number;
+  done: number;
+  failed: number;
+  lastMessage?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  featureVersion: string;
+  totalVideos: number;
+  readyExemplars: number;
+  failedExemplars: number;
+  signsReady: number;
+  totalSigns: number;
 }

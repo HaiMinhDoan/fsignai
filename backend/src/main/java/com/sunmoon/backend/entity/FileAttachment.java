@@ -79,10 +79,21 @@ public class FileAttachment {
 
 
 
+    /**
+     * Địa chỉ TRÌNH DUYỆT dùng để tải video/ảnh — khác với địa chỉ server dùng để nói chuyện với MinIO.
+     *
+     * Ưu tiên `minio.domain` (tên miền công khai, có HTTPS), chỉ khi bỏ trống mới quay về
+     * `minio.endpoint`. Tách hai thứ này vì chúng phục vụ hai mục đích trái ngược nhau:
+     *  • server nên đi thẳng vào MinIO (nhanh, không qua proxy nên không dính giới hạn dung lượng tải lên)
+     *  • trình duyệt bắt buộc phải dùng HTTPS, nếu không trang HTTPS sẽ chặn sạch video vì nội dung hỗn hợp
+     */
     public String getPublicUrl(){
-        return ConstantVariables.MINIO_ENDPOINT.endsWith("/")
-                ? ConstantVariables.MINIO_ENDPOINT + getBucket() + "/" + getObjectKey()
-                : ConstantVariables.MINIO_ENDPOINT + "/" + getBucket() + "/" + getObjectKey();
+        String base = ConstantVariables.MINIO_DOMAIN == null || ConstantVariables.MINIO_DOMAIN.isBlank()
+                ? ConstantVariables.MINIO_ENDPOINT
+                : ConstantVariables.MINIO_DOMAIN;
+        return base.endsWith("/")
+                ? base + getBucket() + "/" + getObjectKey()
+                : base + "/" + getBucket() + "/" + getObjectKey();
     }
 
 }

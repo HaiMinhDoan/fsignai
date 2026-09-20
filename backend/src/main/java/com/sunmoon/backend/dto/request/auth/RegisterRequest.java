@@ -1,11 +1,13 @@
 package com.sunmoon.backend.dto.request.auth;
 
+import com.sunmoon.backend.constant.enums.AccountKind;
 import com.sunmoon.backend.constant.enums.AgeRange;
 import com.sunmoon.backend.constant.enums.Region;
 import com.sunmoon.backend.constant.enums.UserType;
 import com.sunmoon.backend.constant.enums.VslRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -30,6 +32,13 @@ public class RegisterRequest {
     @NotBlank(message = "Họ tên không được để trống")
     @Size(max = 150)
     String fullName;
+
+    /**
+     * Chọn ngay trên màn đăng ký: học sinh / phụ huynh / giáo viên. Bắt buộc vì
+     * đây là câu hỏi phân luồng đầu tiên - không phải câu hỏi tuỳ chọn như age_range.
+     */
+    @NotNull(message = "Vui lòng chọn bạn là học sinh, phụ huynh hay giáo viên")
+    AccountKind accountKind;
 
     AgeRange ageRange;
 

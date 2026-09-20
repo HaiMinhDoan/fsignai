@@ -42,7 +42,11 @@ export function useECharts(
       return;
     }
 
-    chartInstance = echarts.init(el, t);
+    // ECharts mặc định dùng tiếng Trung cho các nhãn dựng sẵn (thanh công cụ,
+    // tên tháng, nhãn bản đồ). Hiện chưa biểu đồ nào bật toolbox nên chưa lộ ra,
+    // nhưng chốt sang 'EN' để sau này bật lên không bất ngờ ra tiếng Trung.
+    // ECharts không có gói tiếng Việt.
+    chartInstance = echarts.init(el, t, { locale: 'EN' });
     const { removeEvent } = useEventListener({
       el: window,
       name: 'resize',

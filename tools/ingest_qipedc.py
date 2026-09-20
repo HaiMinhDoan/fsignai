@@ -80,6 +80,11 @@ DEFAULT_PROPS = REPO_ROOT / "backend" / "src" / "main" / "resources" / "applicat
 
 VIDEO_URL_TEMPLATE = "https://qipedc.moet.gov.vn/videos/{video_id}.mp4"
 
+# Ảnh đại diện của video, cùng mã: .../videos/D0001B.mp4 <-> .../thumbs/D0001B.png
+# Không có ảnh thì bảng từ vựng 3.322 dòng trong CMS và lưới tra cứu ngoài
+# trang học đều chỉ là chữ — người dùng phải mở từng từ mới biết đó là ký hiệu gì.
+THUMB_URL_TEMPLATE = "https://qipedc.moet.gov.vn/thumbs/{video_id}.png"
+
 # Nguồn dữ liệu: đánh dấu để sau này truy vết bản quyền và ghi công Bộ GD&ĐT
 SOURCE = "MOET_QIPEDC"
 
@@ -714,6 +719,223 @@ def fetch_videos(cfg: Config, conn, workers: int, limit: Optional[int],
 
 
 # ---------------------------------------------------------------------------
+# Giai đoạn 3: ảnh đại diện (thumbnail)
+#
+# Tách hẳn khỏi giai đoạn video vì hai lý do:
+#
+# 1. Video đã nạp xong từ trước (4.362 file), chạy lại giai đoạn 2 chỉ để lấy
+#    thêm ảnh thì mỗi dòng đều phải đi hỏi MinIO "file này có chưa" rồi bỏ qua.
+#    Quét riêng theo thumbnail_file_id IS NULL vừa nhanh vừa nối lại được sau
+#    khi bị ngắt giữa chừng.
+#
+# 2. Thiếu ảnh KHÁC hẳn thiếu video. Video hỏng thì từ đó không dạy được; ảnh
+#    hỏng chỉ làm ô xem trước trống. Nên lỗi ở đây KHÔNG được đụng vào
+#    ingest_status của sign_videos — đánh dấu FAILED sẽ khiến lần chạy sau tải
+#    lại cả video vốn đang hoàn toàn bình thường.
+# ---------------------------------------------------------------------------
+
+
+def thumb_url_from_video_url(source_url: str) -> str:
+    """
+    Suy URL ảnh từ chính source_url đã lưu, KHÔNG dựng lại từ source_ref +
+    vùng miền. Lý do: source_url là thứ đã tải video về thành công, nên nó là
+    bản ghi đúng nhất về mã video thật — dựng lại từ quy tắc đặt tên sẽ sai ở
+    đúng những dòng có mã bất thường.
+    """
+    return source_url.replace("/videos/", "/thumbs/").rsplit(".", 1)[0] + ".png"
+
+
+def fetch_one_thumb(cfg: Config, task: dict, session_headers: dict,
+                    attempts: int = 3) -> tuple[str, str]:
+    """Tải một ảnh đại diện, đẩy lên MinIO, ghi file_attachments, gắn vào sign_videos."""
+    video_id = task["video_id"]
+    sign_video_id = task["sign_video_id"]
+    thumb_url = task["thumb_url"]
+    object_key = f"signs/{task['source_ref']}/{video_id}.png"
+
+    conn = get_thread_conn(cfg)
+    client = get_thread_minio(cfg)
+
+    tmp_path: Optional[Path] = None
+    try:
+        size_bytes = None
+        already_there = False
+        try:
+            stat = client.stat_object(cfg.minio_bucket, object_key)
+            size_bytes = stat.size
+            already_there = bool(size_bytes and size_bytes > 0)
+        except S3Error:
+            already_there = False
+
+        if not already_there:
+            last_error: Optional[Exception] = None
+            for attempt in range(1, attempts + 1):
+                try:
+                    with requests.get(thumb_url, headers=session_headers,
+                                      stream=True, timeout=(10, 60)) as resp:
+                        resp.raise_for_status()
+                        ctype = resp.headers.get("Content-Type", "")
+                        # Máy chủ trả trang HTML "không tìm thấy" với mã 200 —
+                        # nhận nhầm sẽ ghi một file .png chứa HTML vào MinIO.
+                        if "image" not in ctype.lower():
+                            raise RuntimeError(f"Máy chủ trả {ctype or 'kiểu không rõ'} thay vì ảnh")
+
+                        fd, tmp_name = tempfile.mkstemp(suffix=".png")
+                        os.close(fd)
+                        tmp_path = Path(tmp_name)
+                        with tmp_path.open("wb") as fh:
+                            for chunk in resp.iter_content(chunk_size=64 * 1024):
+                                if chunk:
+                                    fh.write(chunk)
+                    size_bytes = tmp_path.stat().st_size
+                    if size_bytes == 0:
+                        raise RuntimeError("Tải về 0 byte")
+                    last_error = None
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_error = exc
+                    if tmp_path and tmp_path.exists():
+                        tmp_path.unlink(missing_ok=True)
+                        tmp_path = None
+                    if attempt < attempts:
+                        time.sleep(2 ** attempt)
+            if last_error is not None:
+                raise last_error
+
+            client.fput_object(cfg.minio_bucket, object_key, str(tmp_path),
+                               content_type="image/png")
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id FROM file_attachments
+                 WHERE bucket = %s AND object_key = %s
+                 LIMIT 1
+                """,
+                (cfg.minio_bucket, object_key),
+            )
+            row = cur.fetchone()
+            if row:
+                file_id = row[0]
+                cur.execute(
+                    """
+                    UPDATE file_attachments
+                       SET size_bytes = %s, status = 'active',
+                           entity_type = %s, entity_id = %s, updated_at = now()
+                     WHERE id = %s
+                    """,
+                    (size_bytes, ENTITY_TYPE_SIGN_VIDEO, sign_video_id, file_id),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO file_attachments
+                        (bucket, object_key, original_name, mime_type, extension,
+                         size_bytes, entity_type, entity_id, status)
+                    VALUES (%s, %s, %s, 'image/png', 'png', %s, %s, %s, 'active')
+                    RETURNING id
+                    """,
+                    (cfg.minio_bucket, object_key, f"{video_id}.png",
+                     size_bytes, ENTITY_TYPE_SIGN_VIDEO, sign_video_id),
+                )
+                file_id = cur.fetchone()[0]
+
+            cur.execute(
+                """
+                UPDATE sign_videos
+                   SET thumbnail_file_id = %s, updated_at = now()
+                 WHERE id = %s
+                """,
+                (file_id, sign_video_id),
+            )
+        conn.commit()
+        return ("READY" if not already_there else "ALREADY", video_id)
+
+    except Exception as exc:  # noqa: BLE001
+        conn.rollback()
+        # Cố ý KHÔNG ghi gì vào sign_videos: xem ghi chú đầu mục này.
+        message = f"{type(exc).__name__}: {exc}"[:300]
+        return ("FAILED", f"{video_id}: {message}")
+
+    finally:
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+
+
+def fetch_thumbs(cfg: Config, conn, workers: int, limit: Optional[int],
+                 only_refs: Optional[set[str]] = None) -> Counter:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT sv.id, sv.source_url, s.source_ref
+              FROM sign_videos sv
+              JOIN signs s ON s.id = sv.sign_id
+             WHERE sv.source_url LIKE 'https://qipedc.moet.gov.vn/%%'
+               AND sv.thumbnail_file_id IS NULL
+             ORDER BY s.source_ref, sv.region
+            """
+        )
+        rows = cur.fetchall()
+
+    if only_refs is not None:
+        rows = [r for r in rows if r[2] in only_refs]
+
+    tasks = []
+    for sign_video_id, source_url, source_ref in rows:
+        video_id = source_url.rsplit("/", 1)[-1].removesuffix(".mp4")
+        tasks.append({
+            "sign_video_id": sign_video_id,
+            "source_ref": source_ref,
+            "video_id": video_id,
+            "thumb_url": thumb_url_from_video_url(source_url),
+        })
+
+    if limit:
+        tasks = tasks[:limit]
+
+    if not tasks:
+        print("Không còn ảnh đại diện nào cần tải.")
+        return Counter()
+
+    print(f"Cần tải {len(tasks)} ảnh đại diện, chạy {workers} luồng song song.")
+
+    headers = {
+        "User-Agent": "SignAI-ingest/1.0 (+https://qipedc.moet.gov.vn data sync)",
+        "Referer": "https://qipedc.moet.gov.vn/",
+    }
+
+    stats: Counter = Counter()
+    failures: list[str] = []
+    started = time.time()
+    done = 0
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(fetch_one_thumb, cfg, t, headers): t for t in tasks}
+        for future in as_completed(futures):
+            status, message = future.result()
+            stats[status] += 1
+            done += 1
+            if status == "FAILED":
+                failures.append(message)
+            if done % 100 == 0 or done == len(tasks):
+                elapsed = time.time() - started
+                rate = done / elapsed if elapsed else 0
+                remaining = (len(tasks) - done) / rate if rate else 0
+                print(f"  {done}/{len(tasks)}  ok={stats['READY'] + stats['ALREADY']}  "
+                      f"loi={stats['FAILED']}  ~{remaining / 60:.1f} phut con lai")
+
+    if failures:
+        print(f"\n{len(failures)} ảnh lỗi (video vẫn dùng bình thường):")
+        for line in failures[:20]:
+            print("   -", line)
+        if len(failures) > 20:
+            print(f"   ... và {len(failures) - 20} lỗi khác")
+        print("Chạy lại với --thumbs-only để thử lại chỉ những ảnh này.")
+
+    return stats
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -730,6 +952,10 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Chỉ in kết quả dự kiến, không ghi gì")
     parser.add_argument("--catalog-only", action="store_true", help="Chỉ nạp danh mục, không tải video")
     parser.add_argument("--videos-only", action="store_true", help="Bỏ qua danh mục, chỉ tải video còn thiếu")
+    parser.add_argument("--thumbs-only", action="store_true",
+                        help="Chỉ tải ảnh đại diện cho video đã có (bỏ qua danh mục và video)")
+    parser.add_argument("--skip-thumbs", action="store_true",
+                        help="Không tải ảnh đại diện ở lần chạy này")
     parser.add_argument("--update-existing", action="store_true",
                         help="Ghi đè từ đã có trong CSDL (mặc định KHÔNG, để giữ phần admin đã sửa tay)")
     args = parser.parse_args()
@@ -738,6 +964,7 @@ def main() -> int:
     print(f"CSDL   : {cfg.db_user}@{cfg.db_host}:{cfg.db_port}/{cfg.db_name}")
     print(f"MinIO  : {cfg.minio_endpoint} bucket={cfg.minio_bucket}")
     print(f"Nguồn  : {VIDEO_URL_TEMPLATE.format(video_id='<mã từ>')}")
+    print(f"         {THUMB_URL_TEMPLATE.format(video_id='<mã từ>')}")
     if args.dry_run:
         print(">>> CHẠY THỬ — không ghi gì vào CSDL hay MinIO <<<")
     print()
@@ -750,6 +977,33 @@ def main() -> int:
     only_refs: Optional[set[str]] = None
 
     try:
+        # --thumbs-only: video đã nạp xong từ trước, chỉ đi lấy phần ảnh còn thiếu
+        if args.thumbs_only:
+            if args.dry_run:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT count(*) FROM sign_videos
+                         WHERE source_url LIKE 'https://qipedc.moet.gov.vn/%%'
+                           AND thumbnail_file_id IS NULL
+                        """
+                    )
+                    print(f"Chạy thử: {cur.fetchone()[0]} video chưa có ảnh đại diện.")
+                return 0
+
+            client = Minio(cfg.minio_endpoint, access_key=cfg.minio_access_key,
+                           secret_key=cfg.minio_secret_key, secure=cfg.minio_secure)
+            if not client.bucket_exists(cfg.minio_bucket):
+                print(f"Tạo bucket {cfg.minio_bucket}")
+                client.make_bucket(cfg.minio_bucket)
+
+            stats = fetch_thumbs(cfg, conn, args.workers, args.limit, None)
+            print()
+            print(f"  Ảnh tải mới   : {stats['READY']}")
+            print(f"  Ảnh đã có sẵn : {stats['ALREADY']}")
+            print(f"  Ảnh lỗi       : {stats['FAILED']}")
+            return 0 if stats["FAILED"] == 0 else 1
+
         if not args.videos_only:
             raw = json.loads(args.data.read_text(encoding="utf-8"))
             raw_rows = raw["data"] if isinstance(raw, dict) else raw
@@ -795,6 +1049,14 @@ def main() -> int:
         print(f"  Đã có sẵn     : {stats['ALREADY']}")
         print(f"  Lỗi           : {stats['FAILED']}")
 
+        if not args.skip_thumbs:
+            print()
+            thumb_stats = fetch_thumbs(cfg, conn, args.workers, args.limit, only_refs)
+            print()
+            print(f"  Ảnh tải mới   : {thumb_stats['READY']}")
+            print(f"  Ảnh đã có sẵn : {thumb_stats['ALREADY']}")
+            print(f"  Ảnh lỗi       : {thumb_stats['FAILED']}")
+
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -807,6 +1069,16 @@ def main() -> int:
             print("\nTrạng thái toàn bộ video trong CSDL:")
             for status, count in cur.fetchall():
                 print(f"  {status:12s} {count}")
+
+            cur.execute(
+                """
+                SELECT count(*), count(thumbnail_file_id)
+                  FROM sign_videos
+                 WHERE source_url LIKE 'https://qipedc.moet.gov.vn/%%'
+                """
+            )
+            total, with_thumb = cur.fetchone()
+            print(f"\nẢnh đại diện: {with_thumb}/{total} video đã có")
 
         return 0 if stats["FAILED"] == 0 else 1
 

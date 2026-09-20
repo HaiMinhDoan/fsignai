@@ -14,8 +14,8 @@
   }
   withDefaults(defineProps<Props>(), {
     maxWidth: 120,
-    content: '暂无内容',
-    tooltip: '暂无提示',
+    content: 'Chưa có nội dung',
+    tooltip: 'Chưa có chú thích',
     fontSize: 14,
     color: '#FFF',
     backgroundColor: 'rgba(0, 0, 0, .85)',

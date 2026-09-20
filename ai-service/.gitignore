@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# Model MediaPipe tải bằng scripts/fetch_models.py (~13MB), không commit
+models/*.task

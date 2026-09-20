@@ -1,5 +1,6 @@
 package com.sunmoon.backend.service.impl;
 
+import com.sunmoon.backend.constant.enums.AccountKind;
 import com.sunmoon.backend.constant.enums.RoleType;
 import com.sunmoon.backend.constant.enums.UserStatus;
 import com.sunmoon.backend.constant.enums.VerificationPurpose;
@@ -68,18 +69,26 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Email này đã được đăng ký");
         }
 
+        // Chon "Giao vien" o form dang ky tuong duong tu khai chuyen mon TEACHER -
+        // ghi de vslRole nguoi goi co the da gui, tranh truong hop hai lua chon
+        // lech nhau (accountKind=TEACHER nhung vslRole=LEARNER).
+        VslRole vslRole = request.getAccountKind() == AccountKind.TEACHER
+                ? VslRole.TEACHER
+                : (request.getVslRole() == null ? VslRole.LEARNER : request.getVslRole());
+
         // Khai vai tro chuyen mon khac LEARNER thi phai cho admin xac minh.
         // Chua duyet thi gop y cua ho co trong so 0 khi hieu chinh nguong cham diem.
-        boolean claimsExpertRole = request.getVslRole() != null && request.getVslRole() != VslRole.LEARNER;
+        boolean claimsExpertRole = vslRole != VslRole.LEARNER;
 
         User user = User.builder()
                 .email(request.getEmail().trim())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName().trim())
+                .accountKind(request.getAccountKind())
                 .ageRange(request.getAgeRange())
                 .userType(request.getUserType())
                 .region(request.getRegion())
-                .vslRole(request.getVslRole() == null ? VslRole.LEARNER : request.getVslRole())
+                .vslRole(vslRole)
                 .vslRoleStatus(claimsExpertRole ? VslRoleStatus.PENDING : VslRoleStatus.SELF_DECLARED)
                 .vslRoleEvidence(request.getVslRoleEvidence())
                 .status(UserStatus.ACTIVE)
@@ -366,6 +375,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .emailVerified(user.getEmailVerifiedAt() != null)
                 .userType(user.getUserType())
+                .accountKind(user.getAccountKind())
                 .ageRange(user.getAgeRange())
                 .region(user.getRegion())
                 .address(user.getAddress())

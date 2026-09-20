@@ -88,6 +88,11 @@ model và vẫn không có gì để người dùng bấm vào.
 |---|---|---|---|
 | **[MediaPipe Holistic Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/holistic_landmarker)** | **Google** | Apache-2.0 | 553 landmark (33 pose + 478 face + 42 hands). Chạy realtime trên CPU **và trong browser** qua WASM/WebGPU. Có SDK Python cho server-side. Đây là nền của gần như mọi hệ thống SLR hiện đại. |
 
+> **Ghi chú triển khai (20.09.2026).** Bản cài đặt Mức A dùng **Pose Landmarker (lite) + Hand Landmarker** thay vì
+> Holistic: bản Python của Tasks không có Holistic (chỉ `mediapipe.solutions.holistic` đã bị deprecate), còn bản JS
+> ở mức preview. Hai model ổn định ở cả hai nền tảng, và dùng đúng hai model đó ở cả trình duyệt lẫn lúc sinh mẫu
+> giúp landmark của người học và của mẫu cùng một nguồn. Khuôn mặt (khẩu hình) chưa dùng ở Mức A. Xem `ai-service/README.md`.
+
 Lưu ý phiên bản: `mediapipe.solutions.holistic` (legacy) **đã bị deprecate từ 2023**. Dùng API mới
 `mediapipe.tasks` — package JS là `@mediapipe/tasks-vision`, Python là `mediapipe.tasks.python.vision`.
 Rất nhiều tutorial trên mạng vẫn dùng API cũ; đừng copy.

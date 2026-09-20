@@ -1,0 +1,2252 @@
+create table if not exists flyway_schema_history
+(
+    installed_rank integer                 not null
+        constraint flyway_schema_history_pk
+            primary key,
+    version        varchar(50),
+    description    varchar(200)            not null,
+    type           varchar(20)             not null,
+    script         varchar(1000)           not null,
+    checksum       integer,
+    installed_by   varchar(100)            not null,
+    installed_on   timestamp default now() not null,
+    execution_time integer                 not null,
+    success        boolean                 not null
+);
+
+alter table flyway_schema_history
+    owner to postgres;
+
+create index if not exists flyway_schema_history_s_idx
+    on flyway_schema_history (success);
+
+create table if not exists file_attachments
+(
+    id            uuid                     default gen_random_uuid()           not null
+        primary key,
+    bucket        varchar(100)                                                 not null,
+    object_key    text                                                         not null,
+    original_name varchar(255),
+    mime_type     varchar(100),
+    extension     varchar(100),
+    size_bytes    bigint,
+    entity_type   varchar(100),
+    entity_id     uuid,
+    uploaded_by   uuid,
+    status        varchar(50)              default 'active'::character varying not null,
+    created_at    timestamp with time zone default now()                       not null,
+    updated_at    timestamp with time zone default now()                       not null
+);
+
+comment on table file_attachments is 'Kho file đa hình dùng chung. entity_type khớp hằng số trong constant/enums/EntityType.java';
+
+alter table file_attachments
+    owner to postgres;
+
+create index if not exists idx_file_attachments_entity
+    on file_attachments (entity_type, entity_id);
+
+create index if not exists idx_file_attachments_uploader
+    on file_attachments (uploaded_by asc, created_at desc);
+
+create index if not exists idx_file_attachments_status
+    on file_attachments (status)
+    where ((status)::text <> 'active'::text);
+
+create trigger trg_file_attachments_updated_at
+    before update
+    on file_attachments
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists roles
+(
+    id          uuid                     default gen_random_uuid() not null
+        primary key,
+    code        varchar(50)                                        not null
+        unique,
+    name_vi     varchar(150)                                       not null,
+    description text,
+    is_system   boolean                  default false             not null,
+    created_at  timestamp with time zone default now()             not null,
+    updated_at  timestamp with time zone default now()             not null
+);
+
+alter table roles
+    owner to postgres;
+
+create trigger trg_roles_updated_at
+    before update
+    on roles
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists permissions
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    code       varchar(100)                                       not null
+        unique,
+    name_vi    varchar(150)                                       not null,
+    module     varchar(50)                                        not null,
+    created_at timestamp with time zone default now()             not null,
+    updated_at timestamp with time zone default now()             not null
+);
+
+alter table permissions
+    owner to postgres;
+
+create trigger trg_permissions_updated_at
+    before update
+    on permissions
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists role_permissions
+(
+    role_id       uuid not null
+        references roles
+            on delete cascade,
+    permission_id uuid not null
+        references permissions
+            on delete cascade,
+    primary key (role_id, permission_id)
+);
+
+alter table role_permissions
+    owner to postgres;
+
+create table if not exists users
+(
+    id                   uuid                     default gen_random_uuid()                  not null
+        primary key,
+    email                varchar(255)                                                        not null
+        unique,
+    email_normalized     varchar(255) generated always as (lower((email)::text)) stored,
+    password_hash        varchar(255),
+    google_id            varchar(255)
+        unique,
+    full_name            varchar(150)                                                        not null,
+    avatar_file_id       uuid
+                                                                                             references file_attachments
+                                                                                                 on delete set null,
+    address              varchar(255),
+    age_range            varchar(20)
+        constraint users_age_range_check
+            check ((age_range)::text = ANY
+                   ((ARRAY ['UNDER_12'::character varying, 'AGE_12_17'::character varying, 'AGE_18_24'::character varying, 'AGE_25_34'::character varying, 'AGE_35_49'::character varying, 'AGE_50_PLUS'::character varying])::text[])),
+    user_type            varchar(30)              default 'OTHER'::character varying         not null
+        constraint users_user_type_check
+            check ((user_type)::text = ANY
+                   ((ARRAY ['DEAF_HOH'::character varying, 'FAMILY'::character varying, 'FRIEND'::character varying, 'CAREGIVER'::character varying, 'OTHER'::character varying])::text[])),
+    region               varchar(20)              default 'COMMON'::character varying        not null
+        constraint users_region_check
+            check ((region)::text = ANY
+                   ((ARRAY ['NORTH'::character varying, 'CENTRAL'::character varying, 'SOUTH'::character varying, 'COMMON'::character varying])::text[])),
+    vsl_role             varchar(30)              default 'LEARNER'::character varying       not null
+        constraint users_vsl_role_check
+            check ((vsl_role)::text = ANY
+                   ((ARRAY ['LEARNER'::character varying, 'DEAF_NATIVE'::character varying, 'TEACHER'::character varying, 'INTERPRETER'::character varying])::text[])),
+    vsl_role_status      varchar(30)              default 'SELF_DECLARED'::character varying not null
+        constraint users_vsl_role_status_check
+            check ((vsl_role_status)::text = ANY
+                   ((ARRAY ['SELF_DECLARED'::character varying, 'PENDING'::character varying, 'VERIFIED'::character varying, 'REJECTED'::character varying])::text[])),
+    vsl_role_evidence    text,
+    vsl_role_verified_by uuid
+                                                                                             references users
+                                                                                                 on delete set null,
+    vsl_role_verified_at timestamp with time zone,
+    status               varchar(30)              default 'ACTIVE'::character varying        not null
+        constraint users_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['ACTIVE'::character varying, 'PENDING_VERIFICATION'::character varying, 'DISABLED'::character varying, 'BANNED'::character varying])::text[])),
+    banned_until         timestamp with time zone,
+    ban_reason           text,
+    email_verified_at    timestamp with time zone,
+    last_login_at        timestamp with time zone,
+    created_at           timestamp with time zone default now()                              not null,
+    updated_at           timestamp with time zone default now()                              not null,
+    constraint chk_vsl_verified_has_timestamp
+        check (((vsl_role_status)::text <> 'VERIFIED'::text) OR (vsl_role_verified_at IS NOT NULL))
+);
+
+comment on column users.vsl_role is 'Khai báo chuyên môn VSL của người dùng thường. Chỉ ảnh hưởng trọng số góp ý, KHÔNG cấp quyền admin.';
+
+alter table users
+    owner to postgres;
+
+create unique index if not exists idx_users_email_normalized
+    on users (email_normalized);
+
+create index if not exists idx_users_vsl_pending
+    on users (vsl_role_status, created_at)
+    where ((vsl_role_status)::text = 'PENDING'::text);
+
+create index if not exists idx_users_status
+    on users (status)
+    where ((status)::text <> 'ACTIVE'::text);
+
+create trigger trg_users_updated_at
+    before update
+    on users
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists user_roles
+(
+    user_id    uuid                                   not null
+        references users
+            on delete cascade,
+    role_id    uuid                                   not null
+        references roles
+            on delete cascade,
+    granted_by uuid
+                                                      references users
+                                                          on delete set null,
+    granted_at timestamp with time zone default now() not null,
+    primary key (user_id, role_id)
+);
+
+alter table user_roles
+    owner to postgres;
+
+create table if not exists user_settings
+(
+    id                    uuid                     default gen_random_uuid()                     not null
+        primary key,
+    user_id               uuid                                                                   not null
+        unique
+        references users
+            on delete cascade,
+    locale                varchar(10)              default 'vi'::character varying               not null,
+    timezone              varchar(64)              default 'Asia/Ho_Chi_Minh'::character varying not null,
+    daily_goal_minutes    integer                  default 10                                    not null
+        constraint user_settings_daily_goal_minutes_check
+            check ((daily_goal_minutes >= 1) AND (daily_goal_minutes <= 600)),
+    reminder_time         time                     default '20:00:00'::time without time zone    not null,
+    notify_email          boolean                  default true                                  not null,
+    notify_push           boolean                  default true                                  not null,
+    notify_streak         boolean                  default true                                  not null,
+    notify_new_course     boolean                  default true                                  not null,
+    notify_forum_reply    boolean                  default true                                  not null,
+    default_playback_rate numeric(3, 2)            default 1.00                                  not null
+        constraint user_settings_default_playback_rate_check
+            check ((default_playback_rate >= 0.25) AND (default_playback_rate <= 2.00)),
+    high_contrast         boolean                  default false                                 not null,
+    theme                 varchar(20)              default 'SYSTEM'::character varying           not null
+        constraint user_settings_theme_check
+            check ((theme)::text = ANY
+                   ((ARRAY ['LIGHT'::character varying, 'DARK'::character varying, 'SYSTEM'::character varying])::text[])),
+    created_at            timestamp with time zone default now()                                 not null,
+    updated_at            timestamp with time zone default now()                                 not null
+);
+
+alter table user_settings
+    owner to postgres;
+
+create trigger trg_user_settings_updated_at
+    before update
+    on user_settings
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists onboarding_responses
+(
+    id                uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id           uuid                                               not null
+        unique
+        references users
+            on delete cascade,
+    learn_reason      varchar(30)
+        constraint onboarding_responses_learn_reason_check
+            check ((learn_reason)::text = ANY
+                   ((ARRAY ['FAMILY'::character varying, 'FRIENDS'::character varying, 'PERSONAL'::character varying, 'WORK'::character varying, 'BASIC_COMM'::character varying, 'OTHER'::character varying])::text[])),
+    current_level     varchar(20)
+        constraint onboarding_responses_current_level_check
+            check ((current_level)::text = ANY
+                   ((ARRAY ['BEGINNER'::character varying, 'BASIC'::character varying, 'INTERMEDIATE'::character varying, 'ADVANCED'::character varying, 'UNSURE'::character varying])::text[])),
+    daily_minutes     integer
+        constraint onboarding_responses_daily_minutes_check
+            check (daily_minutes = ANY (ARRAY [5, 10, 15, 30])),
+    interested_topics jsonb                    default '[]'::jsonb       not null,
+    completed_at      timestamp with time zone,
+    created_at        timestamp with time zone default now()             not null,
+    updated_at        timestamp with time zone default now()             not null
+);
+
+alter table onboarding_responses
+    owner to postgres;
+
+create trigger trg_onboarding_responses_updated_at
+    before update
+    on onboarding_responses
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists refresh_tokens
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id    uuid                                               not null
+        references users
+            on delete cascade,
+    token_hash varchar(255)                                       not null
+        unique,
+    expires_at timestamp with time zone                           not null,
+    revoked_at timestamp with time zone,
+    user_agent varchar(255),
+    ip_address varchar(64),
+    created_at timestamp with time zone default now()             not null,
+    updated_at timestamp with time zone default now()             not null
+);
+
+alter table refresh_tokens
+    owner to postgres;
+
+create index if not exists idx_refresh_tokens_user
+    on refresh_tokens (user_id)
+    where (revoked_at IS NULL);
+
+create index if not exists idx_refresh_tokens_expiry
+    on refresh_tokens (expires_at)
+    where (revoked_at IS NULL);
+
+create trigger trg_refresh_tokens_updated_at
+    before update
+    on refresh_tokens
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists verification_tokens
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id    uuid                                               not null
+        references users
+            on delete cascade,
+    token_hash varchar(255)                                       not null
+        unique,
+    purpose    varchar(30)                                        not null
+        constraint verification_tokens_purpose_check
+            check ((purpose)::text = ANY
+                   ((ARRAY ['EMAIL_VERIFY'::character varying, 'PASSWORD_RESET'::character varying])::text[])),
+    expires_at timestamp with time zone                           not null,
+    used_at    timestamp with time zone,
+    created_at timestamp with time zone default now()             not null,
+    updated_at timestamp with time zone default now()             not null
+);
+
+alter table verification_tokens
+    owner to postgres;
+
+create index if not exists idx_verification_tokens_user
+    on verification_tokens (user_id, purpose)
+    where (used_at IS NULL);
+
+create trigger trg_verification_tokens_updated_at
+    before update
+    on verification_tokens
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists audit_logs
+(
+    id          uuid                     default gen_random_uuid() not null
+        primary key,
+    actor_id    uuid
+                                                                   references users
+                                                                       on delete set null,
+    action      varchar(100)                                       not null,
+    entity_type varchar(100),
+    entity_id   uuid,
+    before_data jsonb,
+    after_data  jsonb,
+    ip_address  varchar(64),
+    created_at  timestamp with time zone default now()             not null,
+    updated_at  timestamp with time zone default now()             not null
+);
+
+alter table audit_logs
+    owner to postgres;
+
+create index if not exists idx_audit_logs_actor
+    on audit_logs (actor_id asc, created_at desc);
+
+create index if not exists idx_audit_logs_entity
+    on audit_logs (entity_type asc, entity_id asc, created_at desc);
+
+create trigger trg_audit_logs_updated_at
+    before update
+    on audit_logs
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists topics
+(
+    id             uuid                     default gen_random_uuid()                not null
+        primary key,
+    parent_id      uuid
+                                                                                     references topics
+                                                                                         on delete set null,
+    slug           varchar(120)                                                      not null
+        unique,
+    name_vi        varchar(150)                                                      not null,
+    description_vi text,
+    icon_name      varchar(100),
+    icon_file_id   uuid
+                                                                                     references file_attachments
+                                                                                         on delete set null,
+    cover_file_id  uuid
+                                                                                     references file_attachments
+                                                                                         on delete set null,
+    category       varchar(30)              default 'SIMPLE_SIGN'::character varying not null
+        constraint topics_category_check
+            check ((category)::text = ANY
+                   ((ARRAY ['SIMPLE_SIGN'::character varying, 'COMPLEX_SIGN'::character varying, 'SITUATION'::character varying])::text[])),
+    display_order  integer                  default 0                                not null,
+    is_published   boolean                  default false                            not null,
+    created_at     timestamp with time zone default now()                            not null,
+    updated_at     timestamp with time zone default now()                            not null,
+    constraint chk_topic_not_self_parent
+        check (parent_id IS DISTINCT FROM id)
+);
+
+alter table topics
+    owner to postgres;
+
+create index if not exists idx_topics_parent
+    on topics (parent_id, display_order);
+
+create trigger trg_topics_updated_at
+    before update
+    on topics
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists signs
+(
+    id               uuid                     default gen_random_uuid()                   not null
+        primary key,
+    gloss            varchar(150)                                                         not null
+        unique,
+    word_vi          varchar(255)                                                         not null,
+    word_en          varchar(255),
+    description_vi   text,
+    note_vi          text,
+    level            varchar(20)              default 'BEGINNER'::character varying       not null
+        constraint signs_level_check
+            check ((level)::text = ANY
+                   ((ARRAY ['BEGINNER'::character varying, 'BASIC'::character varying, 'INTERMEDIATE'::character varying, 'ADVANCED'::character varying])::text[])),
+    unit_type        varchar(20)              default 'WORD'::character varying           not null
+        constraint signs_unit_type_check
+            check ((unit_type)::text = ANY
+                   ((ARRAY ['LETTER'::character varying, 'NUMBER'::character varying, 'WORD'::character varying, 'PHRASE'::character varying, 'SENTENCE'::character varying])::text[])),
+    word_type        varchar(30)              default 'KHONG_XAC_DINH'::character varying not null
+        constraint signs_word_type_check
+            check ((word_type)::text = ANY
+                   ((ARRAY ['DANH_TU'::character varying, 'DONG_TU'::character varying, 'TINH_TU'::character varying, 'SO_TU'::character varying, 'DAI_TU'::character varying, 'PHO_TU'::character varying, 'QUAN_HE_TU'::character varying, 'LUONG_TU'::character varying, 'CHI_TU'::character varying, 'TRO_TU'::character varying, 'TINH_THAI_TU'::character varying, 'THAN_TU'::character varying, 'KHONG_XAC_DINH'::character varying])::text[])),
+    word_subtype     varchar(30)
+        constraint signs_word_subtype_check
+            check ((word_subtype IS NULL) OR ((word_subtype)::text = ANY
+                                              ((ARRAY ['CHUNG'::character varying, 'RIENG'::character varying, 'DON_VI'::character varying])::text[]))),
+    domain           varchar(30)
+        constraint signs_domain_check
+            check ((domain IS NULL) OR ((domain)::text = ANY
+                                        ((ARRAY ['MATH'::character varying, 'GEOGRAPHY'::character varying, 'COUNTRY'::character varying, 'MEDICAL'::character varying, 'LEGAL'::character varying, 'SCHOOL'::character varying, 'IT'::character varying, 'SPORT'::character varying, 'RELIGION'::character varying])::text[]))),
+    primary_topic_id uuid
+                                                                                          references topics
+                                                                                              on delete set null,
+    hand_count       smallint                 default 1                                   not null
+        constraint signs_hand_count_check
+            check (hand_count = ANY (ARRAY [1, 2])),
+    source           varchar(30)              default 'MANUAL'::character varying         not null
+        constraint signs_source_check
+            check ((source)::text = ANY
+                   ((ARRAY ['MOET_QIPEDC'::character varying, 'SELF_RECORDED'::character varying, 'IMPORTED'::character varying, 'MANUAL'::character varying])::text[])),
+    source_ref       varchar(255),
+    is_published     boolean                  default false                               not null,
+    review_status    varchar(30)              default 'UNREVIEWED'::character varying     not null
+        constraint signs_review_status_check
+            check ((review_status)::text = ANY
+                   ((ARRAY ['UNREVIEWED'::character varying, 'APPROVED'::character varying, 'NEEDS_FIX'::character varying])::text[])),
+    reviewed_by      uuid
+                                                                                          references users
+                                                                                              on delete set null,
+    reviewed_at      timestamp with time zone,
+    created_by       uuid
+                                                                                          references users
+                                                                                              on delete set null,
+    created_at       timestamp with time zone default now()                               not null,
+    updated_at       timestamp with time zone default now()                               not null,
+    word_vi_unaccent text generated always as (lower(f_unaccent((word_vi)::text))) stored,
+    search_vector    tsvector generated always as (to_tsvector('simple'::regconfig,
+                                                               ((((((f_unaccent((COALESCE(word_vi, ''::character varying))::text) ||
+                                                                     ' '::text) ||
+                                                                    (COALESCE(word_vi, ''::character varying))::text) ||
+                                                                   ' '::text) ||
+                                                                  (COALESCE(word_en, ''::character varying))::text) ||
+                                                                 ' '::text) ||
+                                                                f_unaccent(COALESCE(description_vi, ''::text))))) stored
+);
+
+comment on column signs.description_vi is 'Mô tả cách làm ký hiệu bằng chữ. Bắt buộc cho người khiếm thị và cho SEO.';
+
+alter table signs
+    owner to postgres;
+
+create index if not exists idx_signs_search
+    on signs using gin (search_vector);
+
+create index if not exists idx_signs_unaccent_trgm
+    on signs using gin (word_vi_unaccent gin_trgm_ops);
+
+create index if not exists idx_signs_level_topic
+    on signs (level, primary_topic_id)
+    where is_published;
+
+create index if not exists idx_signs_unit_type
+    on signs (unit_type, level)
+    where is_published;
+
+create index if not exists idx_signs_word_type
+    on signs (word_type)
+    where is_published;
+
+create index if not exists idx_signs_domain
+    on signs (domain)
+    where (domain IS NOT NULL);
+
+create index if not exists idx_signs_source_ref
+    on signs (source_ref)
+    where (source_ref IS NOT NULL);
+
+create trigger trg_signs_updated_at
+    before update
+    on signs
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists sign_topics
+(
+    sign_id  uuid not null
+        references signs
+            on delete cascade,
+    topic_id uuid not null
+        references topics
+            on delete cascade,
+    primary key (sign_id, topic_id)
+);
+
+alter table sign_topics
+    owner to postgres;
+
+create index if not exists idx_sign_topics_topic
+    on sign_topics (topic_id);
+
+create table if not exists sign_videos
+(
+    id                uuid                     default gen_random_uuid()           not null
+        primary key,
+    sign_id           uuid                                                         not null
+        references signs
+            on delete cascade,
+    file_id           uuid
+                                                                                   references file_attachments
+                                                                                       on delete set null,
+    thumbnail_file_id uuid
+                                                                                   references file_attachments
+                                                                                       on delete set null,
+    region            varchar(20)              default 'COMMON'::character varying not null
+        constraint sign_videos_region_check
+            check ((region)::text = ANY
+                   ((ARRAY ['NORTH'::character varying, 'CENTRAL'::character varying, 'SOUTH'::character varying, 'COMMON'::character varying])::text[])),
+    view_angle        varchar(20)              default 'FRONT'::character varying  not null
+        constraint sign_videos_view_angle_check
+            check ((view_angle)::text = ANY
+                   ((ARRAY ['FRONT'::character varying, 'LEFT'::character varying, 'RIGHT'::character varying])::text[])),
+    signer_label      varchar(50),
+    duration_ms       integer
+        constraint sign_videos_duration_ms_check
+            check ((duration_ms IS NULL) OR (duration_ms > 0)),
+    width             integer,
+    height            integer,
+    caption_vi        text,
+    is_primary        boolean                  default false                       not null,
+    ingest_status     varchar(20)              default 'READY'::character varying  not null
+        constraint sign_videos_ingest_status_check
+            check ((ingest_status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'DOWNLOADING'::character varying, 'READY'::character varying, 'FAILED'::character varying])::text[])),
+    source_url        text,
+    ingest_error      text,
+    created_at        timestamp with time zone default now()                       not null,
+    updated_at        timestamp with time zone default now()                       not null
+);
+
+alter table sign_videos
+    owner to postgres;
+
+create index if not exists idx_sign_videos_sign
+    on sign_videos (sign_id, region);
+
+create index if not exists idx_sign_videos_region
+    on sign_videos (region)
+    where ((ingest_status)::text = 'READY'::text);
+
+create index if not exists idx_sign_videos_ingest
+    on sign_videos (ingest_status)
+    where ((ingest_status)::text = ANY ((ARRAY ['PENDING'::character varying, 'FAILED'::character varying])::text[]));
+
+create unique index if not exists uq_sign_videos_primary_per_region
+    on sign_videos (sign_id, region)
+    where is_primary;
+
+create unique index if not exists uq_sign_videos_source_url
+    on sign_videos (source_url)
+    where (source_url IS NOT NULL);
+
+create trigger trg_sign_videos_updated_at
+    before update
+    on sign_videos
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists sign_relations
+(
+    id              uuid                     default gen_random_uuid()            not null
+        primary key,
+    sign_id         uuid                                                          not null
+        references signs
+            on delete cascade,
+    related_sign_id uuid                                                          not null
+        references signs
+            on delete cascade,
+    relation_type   varchar(30)              default 'RELATED'::character varying not null
+        constraint sign_relations_relation_type_check
+            check ((relation_type)::text = ANY
+                   ((ARRAY ['RELATED'::character varying, 'SYNONYM'::character varying, 'ANTONYM'::character varying, 'EASILY_CONFUSED'::character varying])::text[])),
+    created_at      timestamp with time zone default now()                        not null,
+    updated_at      timestamp with time zone default now()                        not null,
+    constraint uq_sign_relation
+        unique (sign_id, related_sign_id, relation_type),
+    constraint chk_sign_relation_not_self
+        check (sign_id <> related_sign_id)
+);
+
+alter table sign_relations
+    owner to postgres;
+
+create index if not exists idx_sign_relations_confused
+    on sign_relations (sign_id)
+    where ((relation_type)::text = 'EASILY_CONFUSED'::text);
+
+create trigger trg_sign_relations_updated_at
+    before update
+    on sign_relations
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists saved_signs
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id    uuid                                               not null
+        references users
+            on delete cascade,
+    sign_id    uuid                                               not null
+        references signs
+            on delete cascade,
+    note       text,
+    created_at timestamp with time zone default now()             not null,
+    updated_at timestamp with time zone default now()             not null,
+    constraint uq_saved_sign
+        unique (user_id, sign_id)
+);
+
+alter table saved_signs
+    owner to postgres;
+
+create index if not exists idx_saved_signs_user
+    on saved_signs (user_id asc, created_at desc);
+
+create trigger trg_saved_signs_updated_at
+    before update
+    on saved_signs
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists sign_import_batches
+(
+    id                   uuid                     default gen_random_uuid()            not null
+        primary key,
+    import_type          varchar(30)                                                   not null
+        constraint sign_import_batches_import_type_check
+            check ((import_type)::text = ANY
+                   ((ARRAY ['EXCEL_VOCAB'::character varying, 'BULK_VIDEO_URL'::character varying, 'BULK_VIDEO_UPLOAD'::character varying])::text[])),
+    file_id              uuid
+                                                                                       references file_attachments
+                                                                                           on delete set null,
+    status               varchar(20)              default 'PENDING'::character varying not null
+        constraint sign_import_batches_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'RUNNING'::character varying, 'COMPLETED'::character varying, 'FAILED'::character varying, 'CANCELLED'::character varying])::text[])),
+    total_rows           integer                  default 0                            not null,
+    processed_rows       integer                  default 0                            not null,
+    created_count        integer                  default 0                            not null,
+    updated_count        integer                  default 0                            not null,
+    failed_count         integer                  default 0                            not null,
+    duplicate_strategy   varchar(20)              default 'SKIP'::character varying    not null
+        constraint sign_import_batches_duplicate_strategy_check
+            check ((duplicate_strategy)::text = ANY
+                   ((ARRAY ['SKIP'::character varying, 'OVERWRITE'::character varying, 'CREATE_DRAFT'::character varying])::text[])),
+    error_report_file_id uuid
+                                                                                       references file_attachments
+                                                                                           on delete set null,
+    started_by           uuid
+                                                                                       references users
+                                                                                           on delete set null,
+    started_at           timestamp with time zone,
+    finished_at          timestamp with time zone,
+    created_at           timestamp with time zone default now()                        not null,
+    updated_at           timestamp with time zone default now()                        not null
+);
+
+alter table sign_import_batches
+    owner to postgres;
+
+create trigger trg_sign_import_batches_updated_at
+    before update
+    on sign_import_batches
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists sign_import_rows
+(
+    id            uuid                     default gen_random_uuid()            not null
+        primary key,
+    batch_id      uuid                                                          not null
+        references sign_import_batches
+            on delete cascade,
+    row_number    integer                                                       not null,
+    raw_data      jsonb                                                         not null,
+    sign_id       uuid
+                                                                                references signs
+                                                                                    on delete set null,
+    status        varchar(20)              default 'PENDING'::character varying not null
+        constraint sign_import_rows_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'CREATED'::character varying, 'UPDATED'::character varying, 'SKIPPED'::character varying, 'FAILED'::character varying])::text[])),
+    error_message text,
+    created_at    timestamp with time zone default now()                        not null,
+    updated_at    timestamp with time zone default now()                        not null
+);
+
+alter table sign_import_rows
+    owner to postgres;
+
+create index if not exists idx_sign_import_rows_batch
+    on sign_import_rows (batch_id, status);
+
+create trigger trg_sign_import_rows_updated_at
+    before update
+    on sign_import_rows
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists courses
+(
+    id             uuid                     default gen_random_uuid()             not null
+        primary key,
+    slug           varchar(120)                                                   not null
+        unique,
+    title_vi       varchar(200)                                                   not null,
+    description_vi text,
+    cover_file_id  uuid
+                                                                                  references file_attachments
+                                                                                      on delete set null,
+    topic_id       uuid
+                                                                                  references topics
+                                                                                      on delete set null,
+    level          varchar(20)              default 'BEGINNER'::character varying not null
+        constraint courses_level_check
+            check ((level)::text = ANY
+                   ((ARRAY ['BEGINNER'::character varying, 'BASIC'::character varying, 'INTERMEDIATE'::character varying, 'ADVANCED'::character varying])::text[])),
+    display_order  integer                  default 0                             not null,
+    generated      boolean                  default false                         not null,
+    is_published   boolean                  default false                         not null,
+    created_at     timestamp with time zone default now()                         not null,
+    updated_at     timestamp with time zone default now()                         not null
+);
+
+alter table courses
+    owner to postgres;
+
+create index if not exists idx_courses_level
+    on courses (level, display_order)
+    where is_published;
+
+create trigger trg_courses_updated_at
+    before update
+    on courses
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists lessons
+(
+    id                uuid                     default gen_random_uuid() not null
+        primary key,
+    course_id         uuid                                               not null
+        references courses
+            on delete cascade,
+    title_vi          varchar(200)                                       not null,
+    description_vi    text,
+    display_order     integer                  default 0                 not null,
+    estimated_minutes integer                  default 5                 not null
+        constraint lessons_estimated_minutes_check
+            check (estimated_minutes > 0),
+    generated         boolean                  default false             not null,
+    is_published      boolean                  default false             not null,
+    created_at        timestamp with time zone default now()             not null,
+    updated_at        timestamp with time zone default now()             not null
+);
+
+alter table lessons
+    owner to postgres;
+
+create index if not exists idx_lessons_course
+    on lessons (course_id, display_order);
+
+create trigger trg_lessons_updated_at
+    before update
+    on lessons
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists learning_paths
+(
+    id             uuid                     default gen_random_uuid()                     not null
+        primary key,
+    user_id        uuid                                                                   not null
+        references users
+            on delete cascade,
+    name           varchar(200)             default 'Lộ trình của tôi'::character varying not null,
+    generated_from varchar(20)              default 'ONBOARDING'::character varying       not null
+        constraint learning_paths_generated_from_check
+            check ((generated_from)::text = ANY
+                   ((ARRAY ['ONBOARDING'::character varying, 'MANUAL'::character varying, 'ADMIN'::character varying])::text[])),
+    is_active      boolean                  default true                                  not null,
+    created_at     timestamp with time zone default now()                                 not null,
+    updated_at     timestamp with time zone default now()                                 not null
+);
+
+alter table learning_paths
+    owner to postgres;
+
+create unique index if not exists uq_learning_path_active
+    on learning_paths (user_id)
+    where is_active;
+
+create trigger trg_learning_paths_updated_at
+    before update
+    on learning_paths
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists learning_path_items
+(
+    id               uuid                     default gen_random_uuid() not null
+        primary key,
+    learning_path_id uuid                                               not null
+        references learning_paths
+            on delete cascade,
+    course_id        uuid                                               not null
+        references courses
+            on delete cascade,
+    display_order    integer                  default 0                 not null,
+    created_at       timestamp with time zone default now()             not null,
+    updated_at       timestamp with time zone default now()             not null,
+    constraint uq_learning_path_course
+        unique (learning_path_id, course_id)
+);
+
+alter table learning_path_items
+    owner to postgres;
+
+create index if not exists idx_learning_path_items
+    on learning_path_items (learning_path_id, display_order);
+
+create trigger trg_learning_path_items_updated_at
+    before update
+    on learning_path_items
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists flashcard_reviews
+(
+    id               uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id          uuid                                               not null
+        references users
+            on delete cascade,
+    sign_id          uuid                                               not null
+        references signs
+            on delete cascade,
+    ease_factor      numeric(4, 2)            default 2.50              not null
+        constraint flashcard_reviews_ease_factor_check
+            check (ease_factor >= 1.30),
+    interval_days    integer                  default 0                 not null
+        constraint flashcard_reviews_interval_days_check
+            check (interval_days >= 0),
+    repetitions      integer                  default 0                 not null
+        constraint flashcard_reviews_repetitions_check
+            check (repetitions >= 0),
+    lapses           integer                  default 0                 not null,
+    due_at           timestamp with time zone default now()             not null,
+    last_result      varchar(20)
+        constraint flashcard_reviews_last_result_check
+            check ((last_result IS NULL) OR ((last_result)::text = ANY
+                                             ((ARRAY ['KNOWN'::character varying, 'NEEDS_PRACTICE'::character varying])::text[]))),
+    last_reviewed_at timestamp with time zone,
+    created_at       timestamp with time zone default now()             not null,
+    updated_at       timestamp with time zone default now()             not null,
+    constraint uq_flashcard_user_sign
+        unique (user_id, sign_id)
+);
+
+alter table flashcard_reviews
+    owner to postgres;
+
+create index if not exists idx_flashcard_due
+    on flashcard_reviews (user_id, due_at);
+
+create trigger trg_flashcard_reviews_updated_at
+    before update
+    on flashcard_reviews
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists quizzes
+(
+    id                 uuid                     default gen_random_uuid()                not null
+        primary key,
+    lesson_id          uuid
+        references lessons
+            on delete cascade,
+    topic_id           uuid
+                                                                                         references topics
+                                                                                             on delete set null,
+    title_vi           varchar(200)                                                      not null,
+    description_vi     text,
+    quiz_type          varchar(20)              default 'LESSON_QUIZ'::character varying not null
+        constraint quizzes_quiz_type_check
+            check ((quiz_type)::text = ANY
+                   ((ARRAY ['LESSON_QUIZ'::character varying, 'TOPIC_TEST'::character varying, 'PRACTICE'::character varying])::text[])),
+    pass_score         integer                  default 70                               not null
+        constraint quizzes_pass_score_check
+            check ((pass_score >= 0) AND (pass_score <= 100)),
+    time_limit_seconds integer
+        constraint quizzes_time_limit_seconds_check
+            check ((time_limit_seconds IS NULL) OR (time_limit_seconds > 0)),
+    is_published       boolean                  default false                            not null,
+    created_at         timestamp with time zone default now()                            not null,
+    updated_at         timestamp with time zone default now()                            not null
+);
+
+alter table quizzes
+    owner to postgres;
+
+create table if not exists lesson_items
+(
+    id            uuid                     default gen_random_uuid() not null
+        primary key,
+    lesson_id     uuid                                               not null
+        references lessons
+            on delete cascade,
+    item_type     varchar(20)                                        not null
+        constraint lesson_items_item_type_check
+            check ((item_type)::text = ANY
+                   ((ARRAY ['SIGN'::character varying, 'VIDEO'::character varying, 'TEXT'::character varying, 'PRACTICE'::character varying, 'QUIZ'::character varying])::text[])),
+    sign_id       uuid
+        references signs
+            on delete cascade,
+    quiz_id       uuid
+        constraint fk_lesson_items_quiz
+            references quizzes
+            on delete set null,
+    content_json  jsonb,
+    display_order integer                  default 0                 not null,
+    created_at    timestamp with time zone default now()             not null,
+    updated_at    timestamp with time zone default now()             not null,
+    constraint chk_lesson_item_sign
+        check (((item_type)::text <> 'SIGN'::text) OR (sign_id IS NOT NULL))
+);
+
+alter table lesson_items
+    owner to postgres;
+
+create index if not exists idx_lesson_items_lesson
+    on lesson_items (lesson_id, display_order);
+
+create index if not exists idx_lesson_items_sign
+    on lesson_items (sign_id)
+    where (sign_id IS NOT NULL);
+
+create trigger trg_lesson_items_updated_at
+    before update
+    on lesson_items
+    for each row
+execute procedure set_updated_at();
+
+create index if not exists idx_quizzes_lesson
+    on quizzes (lesson_id);
+
+create trigger trg_quizzes_updated_at
+    before update
+    on quizzes
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists quiz_questions
+(
+    id                   uuid                     default gen_random_uuid() not null
+        primary key,
+    quiz_id              uuid                                               not null
+        references quizzes
+            on delete cascade,
+    question_type        varchar(30)                                        not null
+        constraint quiz_questions_question_type_check
+            check ((question_type)::text = ANY
+                   ((ARRAY ['VIDEO_TO_WORD'::character varying, 'WORD_TO_VIDEO'::character varying, 'MULTIPLE_CHOICE'::character varying, 'MATCHING'::character varying, 'AI_PERFORM'::character varying])::text[])),
+    sign_id              uuid                                               not null
+        references signs
+            on delete cascade,
+    prompt_vi            text,
+    options_json         jsonb                    default '[]'::jsonb       not null,
+    correct_option_index integer,
+    points               integer                  default 1                 not null
+        constraint quiz_questions_points_check
+            check (points > 0),
+    display_order        integer                  default 0                 not null,
+    created_at           timestamp with time zone default now()             not null,
+    updated_at           timestamp with time zone default now()             not null,
+    constraint chk_quiz_question_answer
+        check ((((question_type)::text = 'AI_PERFORM'::text) AND (correct_option_index IS NULL)) OR
+               (((question_type)::text <> 'AI_PERFORM'::text) AND (correct_option_index IS NOT NULL)))
+);
+
+alter table quiz_questions
+    owner to postgres;
+
+create index if not exists idx_quiz_questions_quiz
+    on quiz_questions (quiz_id, display_order);
+
+create trigger trg_quiz_questions_updated_at
+    before update
+    on quiz_questions
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists quiz_blueprints
+(
+    id                  uuid                     default gen_random_uuid()                                                not null
+        primary key,
+    code                varchar(100)                                                                                      not null
+        unique,
+    title_vi            varchar(200)                                                                                      not null,
+    description_vi      text,
+    topic_ids           jsonb                    default '[]'::jsonb                                                      not null,
+    levels              jsonb                    default '[]'::jsonb                                                      not null,
+    unit_types          jsonb                    default '[]'::jsonb                                                      not null,
+    word_types          jsonb,
+    question_type_mix   jsonb                    default '{"MATCHING": 2, "VIDEO_TO_WORD": 5, "WORD_TO_VIDEO": 3}'::jsonb not null,
+    question_count      integer                  default 10                                                               not null
+        constraint quiz_blueprints_question_count_check
+            check ((question_count >= 1) AND (question_count <= 100)),
+    option_count        integer                  default 4                                                                not null
+        constraint quiz_blueprints_option_count_check
+            check ((option_count >= 2) AND (option_count <= 8)),
+    pass_score          integer                  default 70                                                               not null
+        constraint quiz_blueprints_pass_score_check
+            check ((pass_score >= 0) AND (pass_score <= 100)),
+    time_limit_seconds  integer
+        constraint quiz_blueprints_time_limit_seconds_check
+            check ((time_limit_seconds IS NULL) OR (time_limit_seconds > 0)),
+    distractor_strategy varchar(30)              default 'EASILY_CONFUSED'::character varying                             not null
+        constraint quiz_blueprints_distractor_strategy_check
+            check ((distractor_strategy)::text = ANY
+                   ((ARRAY ['SAME_TOPIC'::character varying, 'EASILY_CONFUSED'::character varying, 'MIXED'::character varying])::text[])),
+    avoid_recent_days   integer                  default 30                                                               not null
+        constraint quiz_blueprints_avoid_recent_days_check
+            check (avoid_recent_days >= 0),
+    is_active           boolean                  default true                                                             not null,
+    created_by          uuid
+                                                                                                                          references users
+                                                                                                                              on delete set null,
+    created_at          timestamp with time zone default now()                                                            not null,
+    updated_at          timestamp with time zone default now()                                                            not null
+);
+
+alter table quiz_blueprints
+    owner to postgres;
+
+create trigger trg_quiz_blueprints_updated_at
+    before update
+    on quiz_blueprints
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists quiz_attempts
+(
+    id                  uuid                     default gen_random_uuid()                not null
+        primary key,
+    user_id             uuid                                                              not null
+        references users
+            on delete cascade,
+    quiz_id             uuid
+                                                                                          references quizzes
+                                                                                              on delete set null,
+    blueprint_id        uuid
+                                                                                          references quiz_blueprints
+                                                                                              on delete set null,
+    region              varchar(20)              default 'COMMON'::character varying      not null
+        constraint quiz_attempts_region_check
+            check ((region)::text = ANY
+                   ((ARRAY ['NORTH'::character varying, 'CENTRAL'::character varying, 'SOUTH'::character varying, 'COMMON'::character varying])::text[])),
+    generated_questions jsonb,
+    seed                bigint,
+    score               integer                  default 0                                not null,
+    max_score           integer                  default 0                                not null,
+    passed              boolean                  default false                            not null,
+    status              varchar(20)              default 'IN_PROGRESS'::character varying not null
+        constraint quiz_attempts_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['IN_PROGRESS'::character varying, 'SUBMITTED'::character varying, 'EXPIRED'::character varying, 'ABANDONED'::character varying])::text[])),
+    started_at          timestamp with time zone default now()                            not null,
+    submitted_at        timestamp with time zone,
+    duration_seconds    integer,
+    created_at          timestamp with time zone default now()                            not null,
+    updated_at          timestamp with time zone default now()                            not null,
+    constraint chk_attempt_source
+        check (((quiz_id IS NOT NULL) AND (blueprint_id IS NULL)) OR ((quiz_id IS NULL) AND (blueprint_id IS NOT NULL)))
+);
+
+alter table quiz_attempts
+    owner to postgres;
+
+create index if not exists idx_quiz_attempts_user
+    on quiz_attempts (user_id asc, submitted_at desc);
+
+create index if not exists idx_quiz_attempts_open
+    on quiz_attempts (user_id, status)
+    where ((status)::text = 'IN_PROGRESS'::text);
+
+create trigger trg_quiz_attempts_updated_at
+    before update
+    on quiz_attempts
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists matching_sessions
+(
+    id               uuid                     default gen_random_uuid()           not null
+        primary key,
+    user_id          uuid                                                         not null
+        references users
+            on delete cascade,
+    topic_id         uuid
+                                                                                  references topics
+                                                                                      on delete set null,
+    region           varchar(20)              default 'COMMON'::character varying not null
+        constraint matching_sessions_region_check
+            check ((region)::text = ANY
+                   ((ARRAY ['NORTH'::character varying, 'CENTRAL'::character varying, 'SOUTH'::character varying, 'COMMON'::character varying])::text[])),
+    pair_count       integer                  default 8                           not null
+        constraint matching_sessions_pair_count_check
+            check ((pair_count >= 2) AND (pair_count <= 30)),
+    pairs_json       jsonb                    default '[]'::jsonb                 not null,
+    correct_count    integer                  default 0                           not null,
+    attempt_count    integer                  default 0                           not null,
+    duration_seconds integer,
+    completed_at     timestamp with time zone,
+    created_at       timestamp with time zone default now()                       not null,
+    updated_at       timestamp with time zone default now()                       not null
+);
+
+alter table matching_sessions
+    owner to postgres;
+
+create index if not exists idx_matching_sessions_user
+    on matching_sessions (user_id asc, created_at desc);
+
+create trigger trg_matching_sessions_updated_at
+    before update
+    on matching_sessions
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists user_lesson_progress
+(
+    id                 uuid                     default gen_random_uuid()                not null
+        primary key,
+    user_id            uuid                                                              not null
+        references users
+            on delete cascade,
+    lesson_id          uuid                                                              not null
+        references lessons
+            on delete cascade,
+    status             varchar(20)              default 'NOT_STARTED'::character varying not null
+        constraint user_lesson_progress_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['NOT_STARTED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying])::text[])),
+    progress_percent   integer                  default 0                                not null
+        constraint user_lesson_progress_progress_percent_check
+            check ((progress_percent >= 0) AND (progress_percent <= 100)),
+    last_item_id       uuid
+                                                                                         references lesson_items
+                                                                                             on delete set null,
+    time_spent_seconds integer                  default 0                                not null
+        constraint user_lesson_progress_time_spent_seconds_check
+            check (time_spent_seconds >= 0),
+    started_at         timestamp with time zone,
+    completed_at       timestamp with time zone,
+    created_at         timestamp with time zone default now()                            not null,
+    updated_at         timestamp with time zone default now()                            not null,
+    constraint uq_user_lesson
+        unique (user_id, lesson_id),
+    constraint chk_lesson_completed_has_timestamp
+        check (((status)::text <> 'COMPLETED'::text) OR (completed_at IS NOT NULL))
+);
+
+alter table user_lesson_progress
+    owner to postgres;
+
+create index if not exists idx_lesson_progress_user
+    on user_lesson_progress (user_id, status);
+
+create index if not exists idx_lesson_progress_recent
+    on user_lesson_progress (user_id asc, updated_at desc);
+
+create trigger trg_user_lesson_progress_updated_at
+    before update
+    on user_lesson_progress
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists user_course_progress
+(
+    id                uuid                     default gen_random_uuid()                not null
+        primary key,
+    user_id           uuid                                                              not null
+        references users
+            on delete cascade,
+    course_id         uuid                                                              not null
+        references courses
+            on delete cascade,
+    lessons_completed integer                  default 0                                not null,
+    lessons_total     integer                  default 0                                not null,
+    progress_percent  integer                  default 0                                not null
+        constraint user_course_progress_progress_percent_check
+            check ((progress_percent >= 0) AND (progress_percent <= 100)),
+    status            varchar(20)              default 'NOT_STARTED'::character varying not null
+        constraint user_course_progress_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['NOT_STARTED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying])::text[])),
+    completed_at      timestamp with time zone,
+    created_at        timestamp with time zone default now()                            not null,
+    updated_at        timestamp with time zone default now()                            not null,
+    constraint uq_user_course
+        unique (user_id, course_id)
+);
+
+alter table user_course_progress
+    owner to postgres;
+
+create trigger trg_user_course_progress_updated_at
+    before update
+    on user_course_progress
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists daily_activity
+(
+    id                uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id           uuid                                               not null
+        references users
+            on delete cascade,
+    activity_date     date                                               not null,
+    minutes_studied   integer                  default 0                 not null
+        constraint daily_activity_minutes_studied_check
+            check (minutes_studied >= 0),
+    lessons_completed integer                  default 0                 not null,
+    signs_reviewed    integer                  default 0                 not null,
+    quizzes_taken     integer                  default 0                 not null,
+    ai_checks_done    integer                  default 0                 not null,
+    goal_met          boolean                  default false             not null,
+    created_at        timestamp with time zone default now()             not null,
+    updated_at        timestamp with time zone default now()             not null,
+    constraint uq_daily_activity
+        unique (user_id, activity_date)
+);
+
+alter table daily_activity
+    owner to postgres;
+
+create index if not exists idx_daily_activity_user
+    on daily_activity (user_id asc, activity_date desc);
+
+create trigger trg_daily_activity_updated_at
+    before update
+    on daily_activity
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists user_streaks
+(
+    id                      uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id                 uuid                                               not null
+        unique
+        references users
+            on delete cascade,
+    current_streak          integer                  default 0                 not null
+        constraint user_streaks_current_streak_check
+            check (current_streak >= 0),
+    longest_streak          integer                  default 0                 not null
+        constraint user_streaks_longest_streak_check
+            check (longest_streak >= 0),
+    streak_start_date       date,
+    last_activity_date      date,
+    freeze_available        integer                  default 2                 not null
+        constraint user_streaks_freeze_available_check
+            check ((freeze_available >= 0) AND (freeze_available <= 5)),
+    freeze_used_total       integer                  default 0                 not null,
+    last_freeze_grant_month date,
+    created_at              timestamp with time zone default now()             not null,
+    updated_at              timestamp with time zone default now()             not null,
+    constraint chk_longest_ge_current
+        check (longest_streak >= current_streak)
+);
+
+alter table user_streaks
+    owner to postgres;
+
+create index if not exists idx_streaks_at_risk
+    on user_streaks (last_activity_date)
+    where (current_streak > 0);
+
+create trigger trg_user_streaks_updated_at
+    before update
+    on user_streaks
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists streak_freezes
+(
+    id             uuid                     default gen_random_uuid()                  not null
+        primary key,
+    user_id        uuid                                                                not null
+        references users
+            on delete cascade,
+    used_for_date  date                                                                not null,
+    granted_reason varchar(30)              default 'MONTHLY_GRANT'::character varying not null
+        constraint streak_freezes_granted_reason_check
+            check ((granted_reason)::text = ANY
+                   ((ARRAY ['MONTHLY_GRANT'::character varying, 'ACHIEVEMENT'::character varying, 'ADMIN_GIFT'::character varying])::text[])),
+    created_at     timestamp with time zone default now()                              not null,
+    updated_at     timestamp with time zone default now()                              not null,
+    constraint uq_streak_freeze
+        unique (user_id, used_for_date)
+);
+
+alter table streak_freezes
+    owner to postgres;
+
+create trigger trg_streak_freezes_updated_at
+    before update
+    on streak_freezes
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists achievements
+(
+    id             uuid                     default gen_random_uuid() not null
+        primary key,
+    code           varchar(100)                                       not null
+        unique,
+    name_vi        varchar(150)                                       not null,
+    description_vi text,
+    icon_name      varchar(100),
+    icon_file_id   uuid
+                                                                      references file_attachments
+                                                                          on delete set null,
+    criteria_json  jsonb                                              not null,
+    display_order  integer                  default 0                 not null,
+    is_active      boolean                  default true              not null,
+    created_at     timestamp with time zone default now()             not null,
+    updated_at     timestamp with time zone default now()             not null
+);
+
+alter table achievements
+    owner to postgres;
+
+create trigger trg_achievements_updated_at
+    before update
+    on achievements
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists user_achievements
+(
+    id             uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id        uuid                                               not null
+        references users
+            on delete cascade,
+    achievement_id uuid                                               not null
+        references achievements
+            on delete cascade,
+    earned_at      timestamp with time zone default now()             not null,
+    created_at     timestamp with time zone default now()             not null,
+    updated_at     timestamp with time zone default now()             not null,
+    constraint uq_user_achievement
+        unique (user_id, achievement_id)
+);
+
+alter table user_achievements
+    owner to postgres;
+
+create index if not exists idx_user_achievements_user
+    on user_achievements (user_id asc, earned_at desc);
+
+create trigger trg_user_achievements_updated_at
+    before update
+    on user_achievements
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists sign_exemplars
+(
+    id               uuid                     default gen_random_uuid()                          not null
+        primary key,
+    sign_id          uuid                                                                        not null
+        references signs
+            on delete cascade,
+    sign_video_id    uuid
+        references sign_videos
+            on delete cascade,
+    region           varchar(20)              default 'COMMON'::character varying                not null
+        constraint sign_exemplars_region_check
+            check ((region)::text = ANY
+                   ((ARRAY ['NORTH'::character varying, 'CENTRAL'::character varying, 'SOUTH'::character varying, 'COMMON'::character varying])::text[])),
+    landmark_file_id uuid
+                                                                                                 references file_attachments
+                                                                                                     on delete set null,
+    frame_count      integer
+        constraint sign_exemplars_frame_count_check
+            check ((frame_count IS NULL) OR (frame_count > 0)),
+    landmark_dim     integer,
+    embedding        bytea,
+    embedding_dim    integer,
+    quality_score    numeric(5, 4)
+        constraint sign_exemplars_quality_score_check
+            check ((quality_score IS NULL) OR ((quality_score >= (0)::numeric) AND (quality_score <= (1)::numeric))),
+    model_version    varchar(50)              default 'mediapipe-holistic-v1'::character varying not null,
+    is_active        boolean                  default true                                       not null,
+    build_status     varchar(20)              default 'PENDING'::character varying               not null
+        constraint sign_exemplars_build_status_check
+            check ((build_status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'PROCESSING'::character varying, 'READY'::character varying, 'FAILED'::character varying])::text[])),
+    build_error      text,
+    created_at       timestamp with time zone default now()                                      not null,
+    updated_at       timestamp with time zone default now()                                      not null
+);
+
+alter table sign_exemplars
+    owner to postgres;
+
+create index if not exists idx_exemplars_sign
+    on sign_exemplars (sign_id, region)
+    where (is_active AND ((build_status)::text = 'READY'::text));
+
+create index if not exists idx_exemplars_queue
+    on sign_exemplars (build_status)
+    where ((build_status)::text = ANY ((ARRAY ['PENDING'::character varying, 'FAILED'::character varying])::text[]));
+
+create unique index if not exists uq_exemplar_per_video
+    on sign_exemplars (sign_video_id, model_version)
+    where (sign_video_id IS NOT NULL);
+
+create trigger trg_sign_exemplars_updated_at
+    before update
+    on sign_exemplars
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists verify_threshold_groups
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    unit_type  varchar(20)                                        not null
+        constraint verify_threshold_groups_unit_type_check
+            check ((unit_type)::text = ANY
+                   ((ARRAY ['LETTER'::character varying, 'NUMBER'::character varying, 'WORD'::character varying, 'PHRASE'::character varying, 'SENTENCE'::character varying])::text[])),
+    hand_count smallint                                           not null
+        constraint verify_threshold_groups_hand_count_check
+            check (hand_count = ANY (ARRAY [1, 2])),
+    threshold  numeric(6, 4)                                      not null
+        constraint verify_threshold_groups_threshold_check
+            check (threshold > (0)::numeric),
+    note       text,
+    created_at timestamp with time zone default now()             not null,
+    updated_at timestamp with time zone default now()             not null,
+    constraint uq_threshold_group
+        unique (unit_type, hand_count)
+);
+
+alter table verify_threshold_groups
+    owner to postgres;
+
+create trigger trg_verify_threshold_groups_updated_at
+    before update
+    on verify_threshold_groups
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists verify_thresholds
+(
+    id           uuid                     default gen_random_uuid()                  not null
+        primary key,
+    sign_id      uuid                                                                not null
+        unique
+        references signs
+            on delete cascade,
+    threshold    numeric(6, 4)                                                       not null
+        constraint verify_thresholds_threshold_check
+            check (threshold > (0)::numeric),
+    source       varchar(30)              default 'GROUP_DEFAULT'::character varying not null
+        constraint verify_thresholds_source_check
+            check ((source)::text = ANY
+                   ((ARRAY ['EXEMPLAR_DERIVED'::character varying, 'GROUP_DEFAULT'::character varying, 'FEEDBACK_TUNED'::character varying, 'MANUAL'::character varying])::text[])),
+    sample_count integer                  default 0                                  not null,
+    updated_by   uuid
+                                                                                     references users
+                                                                                         on delete set null,
+    created_at   timestamp with time zone default now()                              not null,
+    updated_at   timestamp with time zone default now()                              not null
+);
+
+alter table verify_thresholds
+    owner to postgres;
+
+create trigger trg_verify_thresholds_updated_at
+    before update
+    on verify_thresholds
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists ai_check_results
+(
+    id                  uuid                     default gen_random_uuid()                  not null
+        primary key,
+    user_id             uuid                                                                not null
+        references users
+            on delete cascade,
+    sign_id             uuid                                                                not null
+        references signs
+            on delete cascade,
+    region              varchar(20)              default 'COMMON'::character varying        not null
+        constraint ai_check_results_region_check
+            check ((region)::text = ANY
+                   ((ARRAY ['NORTH'::character varying, 'CENTRAL'::character varying, 'SOUTH'::character varying, 'COMMON'::character varying])::text[])),
+    score               numeric(5, 2)                                                       not null
+        constraint ai_check_results_score_check
+            check ((score >= (0)::numeric) AND (score <= (100)::numeric)),
+    passed              boolean                  default false                              not null,
+    dtw_distance        numeric(8, 5),
+    threshold_used      numeric(6, 4),
+    matched_exemplar_id uuid
+                                                                                            references sign_exemplars
+                                                                                                on delete set null,
+    score_handshape     numeric(5, 2),
+    score_location      numeric(5, 2),
+    score_movement      numeric(5, 2),
+    hint_codes          jsonb                    default '[]'::jsonb                        not null,
+    tracking_quality    numeric(4, 3)
+        constraint ai_check_results_tracking_quality_check
+            check ((tracking_quality IS NULL) OR
+                   ((tracking_quality >= (0)::numeric) AND (tracking_quality <= (1)::numeric))),
+    model_version       varchar(50)              default 'verify-dtw-v1'::character varying not null,
+    processing_ms       integer,
+    context             varchar(20)              default 'PRACTICE'::character varying      not null
+        constraint ai_check_results_context_check
+            check ((context)::text = ANY
+                   ((ARRAY ['PRACTICE'::character varying, 'LESSON'::character varying, 'QUIZ'::character varying])::text[])),
+    landmark_file_id    uuid
+                                                                                            references file_attachments
+                                                                                                on delete set null,
+    consent_to_store    boolean                  default false                              not null,
+    checked_at          timestamp with time zone default now()                              not null,
+    created_at          timestamp with time zone default now()                              not null,
+    updated_at          timestamp with time zone default now()                              not null,
+    constraint chk_landmark_consent
+        check ((landmark_file_id IS NULL) OR consent_to_store)
+);
+
+alter table ai_check_results
+    owner to postgres;
+
+create table if not exists quiz_answers
+(
+    id                    uuid                     default gen_random_uuid() not null
+        primary key,
+    attempt_id            uuid                                               not null
+        references quiz_attempts
+            on delete cascade,
+    question_id           uuid
+                                                                             references quiz_questions
+                                                                                 on delete set null,
+    question_index        integer,
+    sign_id               uuid
+                                                                             references signs
+                                                                                 on delete set null,
+    selected_option_index integer,
+    is_correct            boolean                  default false             not null,
+    ai_check_result_id    uuid
+        constraint fk_quiz_answers_ai_check
+            references ai_check_results
+            on delete set null,
+    points_earned         integer                  default 0                 not null,
+    answered_at           timestamp with time zone default now()             not null,
+    created_at            timestamp with time zone default now()             not null,
+    updated_at            timestamp with time zone default now()             not null,
+    constraint chk_answer_ref
+        check ((question_id IS NOT NULL) OR (question_index IS NOT NULL))
+);
+
+alter table quiz_answers
+    owner to postgres;
+
+create index if not exists idx_quiz_answers_attempt
+    on quiz_answers (attempt_id);
+
+create index if not exists idx_quiz_answers_sign_recent
+    on quiz_answers (sign_id asc, answered_at desc)
+    where (sign_id IS NOT NULL);
+
+create trigger trg_quiz_answers_updated_at
+    before update
+    on quiz_answers
+    for each row
+execute procedure set_updated_at();
+
+create index if not exists idx_ai_check_user
+    on ai_check_results (user_id asc, checked_at desc);
+
+create index if not exists idx_ai_check_sign
+    on ai_check_results (sign_id asc, checked_at desc);
+
+create trigger trg_ai_check_results_updated_at
+    before update
+    on ai_check_results
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists ai_check_feedback
+(
+    id                   uuid                     default gen_random_uuid()                  not null
+        primary key,
+    user_id              uuid                                                                not null
+        references users
+            on delete cascade,
+    ai_check_result_id   uuid                                                                not null
+        references ai_check_results
+            on delete cascade,
+    verdict              varchar(20)                                                         not null
+        constraint ai_check_feedback_verdict_check
+            check ((verdict)::text = ANY ((ARRAY ['AGREE'::character varying, 'DISAGREE'::character varying])::text[])),
+    note                 text,
+    weight_snapshot      smallint                 default 1                                  not null
+        constraint ai_check_feedback_weight_snapshot_check
+            check (weight_snapshot >= 0),
+    role_snapshot        varchar(30)              default 'LEARNER'::character varying       not null,
+    role_status_snapshot varchar(30)              default 'SELF_DECLARED'::character varying not null,
+    created_at           timestamp with time zone default now()                              not null,
+    updated_at           timestamp with time zone default now()                              not null,
+    constraint uq_ai_feedback
+        unique (user_id, ai_check_result_id)
+);
+
+alter table ai_check_feedback
+    owner to postgres;
+
+create index if not exists idx_ai_feedback_disagree
+    on ai_check_feedback (ai_check_result_id)
+    where ((verdict)::text = 'DISAGREE'::text);
+
+create index if not exists idx_ai_feedback_weighted
+    on ai_check_feedback (created_at desc)
+    where (weight_snapshot > 1);
+
+create trigger trg_ai_check_feedback_updated_at
+    before update
+    on ai_check_feedback
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists forum_categories
+(
+    id             uuid                     default gen_random_uuid() not null
+        primary key,
+    slug           varchar(120)                                       not null
+        unique,
+    name_vi        varchar(150)                                       not null,
+    description_vi text,
+    icon_name      varchar(100),
+    display_order  integer                  default 0                 not null,
+    is_locked      boolean                  default false             not null,
+    is_published   boolean                  default true              not null,
+    created_at     timestamp with time zone default now()             not null,
+    updated_at     timestamp with time zone default now()             not null
+);
+
+alter table forum_categories
+    owner to postgres;
+
+create trigger trg_forum_categories_updated_at
+    before update
+    on forum_categories
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists media_assets
+(
+    id                uuid                     default gen_random_uuid()                not null
+        primary key,
+    owner_id          uuid                                                              not null
+        references users
+            on delete cascade,
+    kind              varchar(20)              default 'VIDEO'::character varying       not null
+        constraint media_assets_kind_check
+            check ((kind)::text = ANY ((ARRAY ['VIDEO'::character varying, 'IMAGE'::character varying])::text[])),
+    source            varchar(20)              default 'FILE_UPLOAD'::character varying not null
+        constraint media_assets_source_check
+            check ((source)::text = ANY
+                   ((ARRAY ['WEBCAM_RECORDED'::character varying, 'FILE_UPLOAD'::character varying])::text[])),
+    original_file_id  uuid
+                                                                                        references file_attachments
+                                                                                            on delete set null,
+    playback_file_id  uuid
+                                                                                        references file_attachments
+                                                                                            on delete set null,
+    thumbnail_file_id uuid
+                                                                                        references file_attachments
+                                                                                            on delete set null,
+    duration_ms       integer
+        constraint media_assets_duration_ms_check
+            check ((duration_ms IS NULL) OR (duration_ms > 0)),
+    width             integer,
+    height            integer,
+    size_bytes        bigint,
+    mime_type         varchar(100),
+    transcode_status  varchar(20)              default 'PENDING'::character varying     not null
+        constraint media_assets_transcode_status_check
+            check ((transcode_status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'PROCESSING'::character varying, 'READY'::character varying, 'FAILED'::character varying])::text[])),
+    transcode_error   text,
+    moderation_status varchar(20)              default 'PENDING'::character varying     not null
+        constraint media_assets_moderation_status_check
+            check ((moderation_status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying])::text[])),
+    moderated_by      uuid
+                                                                                        references users
+                                                                                            on delete set null,
+    moderated_at      timestamp with time zone,
+    moderation_note   text,
+    caption_vi        text                     default ''::text                         not null,
+    created_at        timestamp with time zone default now()                            not null,
+    updated_at        timestamp with time zone default now()                            not null
+);
+
+comment on column media_assets.caption_vi is 'Phụ đề/mô tả. API từ chối gắn media VIDEO vào bài hoặc bình luận nếu còn rỗng.';
+
+alter table media_assets
+    owner to postgres;
+
+create index if not exists idx_media_owner
+    on media_assets (owner_id asc, created_at desc);
+
+create index if not exists idx_media_moderation
+    on media_assets (moderation_status, created_at)
+    where ((moderation_status)::text = 'PENDING'::text);
+
+create index if not exists idx_media_transcode
+    on media_assets (transcode_status)
+    where ((transcode_status)::text = ANY
+           ((ARRAY ['PENDING'::character varying, 'PROCESSING'::character varying, 'FAILED'::character varying])::text[]));
+
+create trigger trg_media_assets_updated_at
+    before update
+    on media_assets
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists forum_posts
+(
+    id               uuid                     default gen_random_uuid()                   not null
+        primary key,
+    category_id      uuid                                                                 not null
+        references forum_categories
+            on delete restrict,
+    author_id        uuid                                                                 not null
+        references users
+            on delete cascade,
+    title_vi         varchar(255)                                                         not null,
+    body_md          text,
+    sign_id          uuid
+                                                                                          references signs
+                                                                                              on delete set null,
+    view_count       integer                  default 0                                   not null,
+    comment_count    integer                  default 0                                   not null,
+    reaction_count   integer                  default 0                                   not null,
+    last_activity_at timestamp with time zone default now()                               not null,
+    is_pinned        boolean                  default false                               not null,
+    is_locked        boolean                  default false                               not null,
+    status           varchar(20)              default 'PENDING_REVIEW'::character varying not null
+        constraint forum_posts_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['DRAFT'::character varying, 'PENDING_REVIEW'::character varying, 'PUBLISHED'::character varying, 'HIDDEN'::character varying, 'REMOVED'::character varying])::text[])),
+    published_at     timestamp with time zone,
+    created_at       timestamp with time zone default now()                               not null,
+    updated_at       timestamp with time zone default now()                               not null,
+    search_vector    tsvector generated always as (to_tsvector('simple'::regconfig,
+                                                               ((((f_unaccent((COALESCE(title_vi, ''::character varying))::text) ||
+                                                                   ' '::text) ||
+                                                                  (COALESCE(title_vi, ''::character varying))::text) ||
+                                                                 ' '::text) ||
+                                                                f_unaccent(COALESCE(body_md, ''::text))))) stored
+);
+
+alter table forum_posts
+    owner to postgres;
+
+create index if not exists idx_forum_posts_feed
+    on forum_posts (category_id asc, is_pinned desc, last_activity_at desc)
+    where ((status)::text = 'PUBLISHED'::text);
+
+create index if not exists idx_forum_posts_author
+    on forum_posts (author_id asc, created_at desc);
+
+create index if not exists idx_forum_posts_search
+    on forum_posts using gin (search_vector);
+
+create index if not exists idx_forum_posts_review
+    on forum_posts (status, created_at)
+    where ((status)::text = 'PENDING_REVIEW'::text);
+
+create trigger trg_forum_posts_updated_at
+    before update
+    on forum_posts
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists forum_comments
+(
+    id             uuid                     default gen_random_uuid()                   not null
+        primary key,
+    post_id        uuid                                                                 not null
+        references forum_posts
+            on delete cascade,
+    author_id      uuid                                                                 not null
+        references users
+            on delete cascade,
+    parent_id      uuid
+        references forum_comments
+            on delete cascade,
+    depth          smallint                 default 0                                   not null
+        constraint forum_comments_depth_check
+            check (depth = ANY (ARRAY [0, 1])),
+    body_text      text,
+    reaction_count integer                  default 0                                   not null,
+    status         varchar(20)              default 'PENDING_REVIEW'::character varying not null
+        constraint forum_comments_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['PENDING_REVIEW'::character varying, 'PUBLISHED'::character varying, 'HIDDEN'::character varying, 'REMOVED'::character varying])::text[])),
+    edited_at      timestamp with time zone,
+    created_at     timestamp with time zone default now()                               not null,
+    updated_at     timestamp with time zone default now()                               not null,
+    constraint chk_comment_depth_parent
+        check (((depth = 0) AND (parent_id IS NULL)) OR ((depth = 1) AND (parent_id IS NOT NULL)))
+);
+
+alter table forum_comments
+    owner to postgres;
+
+create index if not exists idx_forum_comments_post
+    on forum_comments (post_id, created_at)
+    where ((status)::text = 'PUBLISHED'::text);
+
+create index if not exists idx_forum_comments_parent
+    on forum_comments (parent_id)
+    where (parent_id IS NOT NULL);
+
+create index if not exists idx_forum_comments_review
+    on forum_comments (status, created_at)
+    where ((status)::text = 'PENDING_REVIEW'::text);
+
+create trigger trg_forum_comments_updated_at
+    before update
+    on forum_comments
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists forum_post_media
+(
+    post_id       uuid              not null
+        references forum_posts
+            on delete cascade,
+    media_id      uuid              not null
+        references media_assets
+            on delete cascade,
+    display_order integer default 0 not null,
+    primary key (post_id, media_id)
+);
+
+alter table forum_post_media
+    owner to postgres;
+
+create table if not exists forum_comment_media
+(
+    comment_id    uuid              not null
+        references forum_comments
+            on delete cascade,
+    media_id      uuid              not null
+        references media_assets
+            on delete cascade,
+    display_order integer default 0 not null,
+    primary key (comment_id, media_id)
+);
+
+alter table forum_comment_media
+    owner to postgres;
+
+create table if not exists forum_reactions
+(
+    id          uuid                     default gen_random_uuid()         not null
+        primary key,
+    user_id     uuid                                                       not null
+        references users
+            on delete cascade,
+    target_type varchar(20)                                                not null
+        constraint forum_reactions_target_type_check
+            check ((target_type)::text = ANY
+                   ((ARRAY ['POST'::character varying, 'COMMENT'::character varying])::text[])),
+    target_id   uuid                                                       not null,
+    reaction    varchar(20)              default 'LIKE'::character varying not null
+        constraint forum_reactions_reaction_check
+            check ((reaction)::text = ANY
+                   ((ARRAY ['LIKE'::character varying, 'HELPFUL'::character varying, 'THANKS'::character varying])::text[])),
+    created_at  timestamp with time zone default now()                     not null,
+    updated_at  timestamp with time zone default now()                     not null,
+    constraint uq_forum_reaction
+        unique (user_id, target_type, target_id)
+);
+
+alter table forum_reactions
+    owner to postgres;
+
+create index if not exists idx_forum_reactions_target
+    on forum_reactions (target_type, target_id);
+
+create trigger trg_forum_reactions_updated_at
+    before update
+    on forum_reactions
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists forum_reports
+(
+    id           uuid                     default gen_random_uuid()         not null
+        primary key,
+    reporter_id  uuid                                                       not null
+        references users
+            on delete cascade,
+    target_type  varchar(20)                                                not null
+        constraint forum_reports_target_type_check
+            check ((target_type)::text = ANY
+                   ((ARRAY ['POST'::character varying, 'COMMENT'::character varying, 'MEDIA'::character varying, 'USER'::character varying])::text[])),
+    target_id    uuid                                                       not null,
+    reason       varchar(30)                                                not null
+        constraint forum_reports_reason_check
+            check ((reason)::text = ANY
+                   ((ARRAY ['SPAM'::character varying, 'ABUSE'::character varying, 'WRONG_SIGN'::character varying, 'OFF_TOPIC'::character varying, 'SENSITIVE'::character varying, 'OTHER'::character varying])::text[])),
+    note         text,
+    status       varchar(20)              default 'OPEN'::character varying not null
+        constraint forum_reports_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['OPEN'::character varying, 'REVIEWING'::character varying, 'RESOLVED'::character varying, 'DISMISSED'::character varying])::text[])),
+    handled_by   uuid
+                                                                            references users
+                                                                                on delete set null,
+    handled_at   timestamp with time zone,
+    handler_note text,
+    created_at   timestamp with time zone default now()                     not null,
+    updated_at   timestamp with time zone default now()                     not null
+);
+
+alter table forum_reports
+    owner to postgres;
+
+create index if not exists idx_forum_reports_open
+    on forum_reports (status, created_at)
+    where ((status)::text = ANY ((ARRAY ['OPEN'::character varying, 'REVIEWING'::character varying])::text[]));
+
+create index if not exists idx_forum_reports_target
+    on forum_reports (target_type, target_id);
+
+create trigger trg_forum_reports_updated_at
+    before update
+    on forum_reports
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists forum_subscriptions
+(
+    user_id    uuid                                   not null
+        references users
+            on delete cascade,
+    post_id    uuid                                   not null
+        references forum_posts
+            on delete cascade,
+    created_at timestamp with time zone default now() not null,
+    primary key (user_id, post_id)
+);
+
+alter table forum_subscriptions
+    owner to postgres;
+
+create table if not exists notification_templates
+(
+    id            uuid                     default gen_random_uuid() not null
+        primary key,
+    code          varchar(100)                                       not null
+        unique,
+    type          varchar(30)                                        not null
+        constraint notification_templates_type_check
+            check ((type)::text = ANY
+                   ((ARRAY ['LESSON_REMINDER'::character varying, 'STREAK_WARNING'::character varying, 'STREAK_LOST'::character varying, 'NEW_COURSE'::character varying, 'ACHIEVEMENT'::character varying, 'FORUM_REPLY'::character varying, 'MODERATION_RESULT'::character varying, 'ROLE_VERIFIED'::character varying, 'SYSTEM'::character varying])::text[])),
+    channel       varchar(20)                                        not null
+        constraint notification_templates_channel_check
+            check ((channel)::text = ANY
+                   ((ARRAY ['IN_APP'::character varying, 'EMAIL'::character varying, 'PUSH'::character varying])::text[])),
+    subject_vi    varchar(255),
+    body_template text                                               not null,
+    is_active     boolean                  default true              not null,
+    created_at    timestamp with time zone default now()             not null,
+    updated_at    timestamp with time zone default now()             not null,
+    constraint uq_notification_template
+        unique (type, channel)
+);
+
+alter table notification_templates
+    owner to postgres;
+
+create trigger trg_notification_templates_updated_at
+    before update
+    on notification_templates
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists notifications
+(
+    id            uuid                     default gen_random_uuid()            not null
+        primary key,
+    user_id       uuid                                                          not null
+        references users
+            on delete cascade,
+    type          varchar(30)                                                   not null
+        constraint notifications_type_check
+            check ((type)::text = ANY
+                   ((ARRAY ['LESSON_REMINDER'::character varying, 'STREAK_WARNING'::character varying, 'STREAK_LOST'::character varying, 'NEW_COURSE'::character varying, 'ACHIEVEMENT'::character varying, 'FORUM_REPLY'::character varying, 'MODERATION_RESULT'::character varying, 'ROLE_VERIFIED'::character varying, 'SYSTEM'::character varying])::text[])),
+    channel       varchar(20)              default 'IN_APP'::character varying  not null
+        constraint notifications_channel_check
+            check ((channel)::text = ANY
+                   ((ARRAY ['IN_APP'::character varying, 'EMAIL'::character varying, 'PUSH'::character varying])::text[])),
+    title_vi      varchar(255)                                                  not null,
+    body_vi       text,
+    action_url    varchar(500),
+    payload       jsonb,
+    status        varchar(20)              default 'PENDING'::character varying not null
+        constraint notifications_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['PENDING'::character varying, 'SENT'::character varying, 'FAILED'::character varying, 'SKIPPED'::character varying])::text[])),
+    error_message text,
+    sent_at       timestamp with time zone,
+    read_at       timestamp with time zone,
+    created_at    timestamp with time zone default now()                        not null,
+    updated_at    timestamp with time zone default now()                        not null
+);
+
+alter table notifications
+    owner to postgres;
+
+create index if not exists idx_notifications_unread
+    on notifications (user_id asc, created_at desc)
+    where (read_at IS NULL);
+
+create index if not exists idx_notifications_queue
+    on notifications (status, created_at)
+    where ((status)::text = 'PENDING'::text);
+
+create trigger trg_notifications_updated_at
+    before update
+    on notifications
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists push_subscriptions
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    user_id    uuid                                               not null
+        references users
+            on delete cascade,
+    endpoint   text                                               not null
+        constraint uq_push_endpoint
+            unique,
+    p256dh     varchar(255)                                       not null,
+    auth       varchar(255)                                       not null,
+    user_agent varchar(255),
+    is_active  boolean                  default true              not null,
+    created_at timestamp with time zone default now()             not null,
+    updated_at timestamp with time zone default now()             not null
+);
+
+alter table push_subscriptions
+    owner to postgres;
+
+create index if not exists idx_push_user
+    on push_subscriptions (user_id)
+    where is_active;
+
+create trigger trg_push_subscriptions_updated_at
+    before update
+    on push_subscriptions
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists blog_posts
+(
+    id            uuid                     default gen_random_uuid()         not null
+        primary key,
+    slug          varchar(160)                                               not null
+        unique,
+    title_vi      varchar(255)                                               not null,
+    excerpt_vi    text,
+    content_md    text                                                       not null,
+    cover_file_id uuid
+                                                                             references file_attachments
+                                                                                 on delete set null,
+    author_id     uuid
+                                                                             references users
+                                                                                 on delete set null,
+    category      varchar(30)              default 'BLOG'::character varying not null
+        constraint blog_posts_category_check
+            check ((category)::text = ANY
+                   ((ARRAY ['BLOG'::character varying, 'MISSION'::character varying, 'GUIDE'::character varying, 'NEWS'::character varying])::text[])),
+    view_count    integer                  default 0                         not null,
+    is_published  boolean                  default false                     not null,
+    published_at  timestamp with time zone,
+    created_at    timestamp with time zone default now()                     not null,
+    updated_at    timestamp with time zone default now()                     not null,
+    search_vector tsvector generated always as (to_tsvector('simple'::regconfig,
+                                                            ((((f_unaccent((COALESCE(title_vi, ''::character varying))::text) ||
+                                                                ' '::text) ||
+                                                               (COALESCE(title_vi, ''::character varying))::text) ||
+                                                              ' '::text) ||
+                                                             f_unaccent(COALESCE(excerpt_vi, ''::text))))) stored
+);
+
+alter table blog_posts
+    owner to postgres;
+
+create index if not exists idx_blog_published
+    on blog_posts (category asc, published_at desc)
+    where is_published;
+
+create index if not exists idx_blog_search
+    on blog_posts using gin (search_vector);
+
+create trigger trg_blog_posts_updated_at
+    before update
+    on blog_posts
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists system_settings
+(
+    id          uuid                     default gen_random_uuid() not null
+        primary key,
+    key         varchar(120)                                       not null
+        unique,
+    value       jsonb                                              not null,
+    description text,
+    updated_by  uuid
+                                                                   references users
+                                                                       on delete set null,
+    created_at  timestamp with time zone default now()             not null,
+    updated_at  timestamp with time zone default now()             not null
+);
+
+alter table system_settings
+    owner to postgres;
+
+create trigger trg_system_settings_updated_at
+    before update
+    on system_settings
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists job_executions
+(
+    id            uuid                     default gen_random_uuid()            not null
+        primary key,
+    job_name      varchar(120)                                                  not null,
+    status        varchar(20)              default 'RUNNING'::character varying not null
+        constraint job_executions_status_check
+            check ((status)::text = ANY
+                   ((ARRAY ['RUNNING'::character varying, 'SUCCESS'::character varying, 'FAILED'::character varying])::text[])),
+    processed     integer                  default 0                            not null,
+    failed        integer                  default 0                            not null,
+    detail        jsonb,
+    error_message text,
+    started_at    timestamp with time zone default now()                        not null,
+    finished_at   timestamp with time zone,
+    created_at    timestamp with time zone default now()                        not null,
+    updated_at    timestamp with time zone default now()                        not null
+);
+
+alter table job_executions
+    owner to postgres;
+
+create index if not exists idx_job_executions_name
+    on job_executions (job_name asc, started_at desc);
+
+create trigger trg_job_executions_updated_at
+    before update
+    on job_executions
+    for each row
+execute procedure set_updated_at();
+
+create table if not exists shedlock
+(
+    name       varchar(64)              not null
+        primary key,
+    lock_until timestamp with time zone not null,
+    locked_at  timestamp with time zone not null,
+    locked_by  varchar(255)             not null
+);
+
+alter table shedlock
+    owner to postgres;
+

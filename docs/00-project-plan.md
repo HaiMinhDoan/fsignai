@@ -260,6 +260,9 @@ thể vùng miền" khi `sign_videos` có nhiều hơn một `region`. Một com
 - **`description_vi` viết tay cho từng từ.** Để trống, bổ sung dần. Không chặn gì.
 - **Toàn bộ AI checking.** Đã tách khỏi 3 ngày theo đúng quyết định — làm sau, và chỉ chạy được khi
   video thật đã nạp xong. Ba tầng ngưỡng ở [02-data-model.md §6](02-data-model.md).
+  → **Đã dựng xong 20.09.2026** ở Mức A (DTW + exemplar): service `ai-service/` (xem README của nó),
+  API `/ai-check/*`, panel camera trong portal, tab "Chấm điểm AI" + sinh mẫu hàng loạt trong CMS.
+  Chưa dựng: màn hình ngưỡng/góp ý trong CMS, nhận diện mở (M2), encoder học (M1).
 - **Test tự động phủ rộng.** Ưu tiên luồng auth và luồng tính điểm; phần còn lại test tay.
 
 Ở nhịp 3 ngày, thứ quyết định không phải tốc độ sinh code mà là **thứ tự**: mốc nghiệm thu cuối Ngày 1

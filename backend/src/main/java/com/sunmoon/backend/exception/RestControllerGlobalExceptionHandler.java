@@ -14,8 +14,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -36,6 +41,9 @@ public class RestControllerGlobalExceptionHandler {
                 .body(ResponseData.builder()
                         .status(e.getHttpStatus().value())
                         .messageCode(e.getMessage())
+                        // Portal đọc `message` để hiện cho người học. Thiếu dòng này thì câu tiếng Việt
+                        // chỉ nằm trong messageCode và người học chỉ thấy "Conflict"/"Not Found".
+                        .message(e.getMessage())
                         .data(e.getData())
                         .path(getPath(request))
                         .error(e.getHttpStatus().getReasonPhrase())
@@ -52,6 +60,8 @@ public class RestControllerGlobalExceptionHandler {
         ResponseData<Map<String, String>> body = ResponseData.<Map<String, String>>builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .messageCode("VALIDATION_FAILED")
+                .message(fieldErrors.values().stream().filter(m -> m != null && !m.isBlank()).findFirst()
+                        .orElse("Dữ liệu gửi lên chưa hợp lệ"))
                 .data(fieldErrors)
                 .error("Bad Request")
                 .path(getPath(request))
@@ -86,6 +96,77 @@ public class RestControllerGlobalExceptionHandler {
                 .path(getPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Thiếu phần multipart, thiếu tham số bắt buộc, hoặc tham số sai kiểu.
+     *
+     * Đây đều là LỖI CỦA CLIENT. Không bắt riêng thì chúng rơi xuống
+     * handleGeneric() và trả về 500 — tức là đổ lỗi cho máy chủ vì một yêu cầu
+     * gửi sai, và người phát triển client sẽ đi tìm nhầm chỗ.
+     */
+    @ExceptionHandler({
+            MissingServletRequestPartException.class,
+            MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class
+    })
+    public ResponseEntity<ResponseData<?>> handleBadRequest(Exception ex, WebRequest request) {
+        // Dùng instanceof thay cho pattern matching trong switch: dự án biên dịch
+        // ở Java 17, cú pháp đó là tính năng xem trước của Java 21.
+        String message;
+        if (ex instanceof MissingServletRequestPartException e) {
+            message = "Thiếu phần dữ liệu bắt buộc: " + e.getRequestPartName();
+        } else if (ex instanceof MissingServletRequestParameterException e) {
+            message = "Thiếu tham số bắt buộc: " + e.getParameterName();
+        } else if (ex instanceof MethodArgumentTypeMismatchException e) {
+            message = "Tham số '" + e.getName() + "' sai định dạng";
+        } else {
+            message = "Yêu cầu không hợp lệ";
+        }
+        ResponseData<Void> body = ResponseData.<Void>builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .messageCode("BAD_REQUEST")
+                .message(message)
+                .error("Bad Request")
+                .path(getPath(request))
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Client gửi sai Content-Type — ví dụ gửi form thường vào endpoint chỉ nhận
+     * multipart. Đây là lỗi của client, trả 415 để họ biết phải sửa ở đâu thay
+     * vì thấy 500 rồi đi tìm lỗi trong máy chủ.
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ResponseData<?>> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException ex, WebRequest request) {
+        String supported = ex.getSupportedMediaTypes().stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", "));
+        ResponseData<Void> body = ResponseData.<Void>builder()
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value())
+                .messageCode("UNSUPPORTED_MEDIA_TYPE")
+                .message("Kiểu dữ liệu gửi lên không được hỗ trợ"
+                        + (supported.isBlank() ? "" : ". Endpoint này nhận: " + supported))
+                .error("Unsupported Media Type")
+                .path(getPath(request))
+                .build();
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(body);
+    }
+
+    /** Tệp vượt quá giới hạn của Spring — trả 413 để client phân biệt với lỗi khác */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ResponseData<?>> handleTooLarge(MaxUploadSizeExceededException ex,
+            WebRequest request) {
+        ResponseData<Void> body = ResponseData.<Void>builder()
+                .status(HttpStatus.PAYLOAD_TOO_LARGE.value())
+                .messageCode("PAYLOAD_TOO_LARGE")
+                .message("Tệp quá lớn so với giới hạn của máy chủ")
+                .error("Payload Too Large")
+                .path(getPath(request))
+                .build();
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(body);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

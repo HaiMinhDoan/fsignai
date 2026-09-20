@@ -5,6 +5,7 @@ import com.sunmoon.backend.constant.enums.Region;
 import com.sunmoon.backend.constant.enums.RoleType;
 import com.sunmoon.backend.constant.enums.ViewAngle;
 import com.sunmoon.backend.customizeanotations.RequireAuth;
+import com.sunmoon.backend.dto.request.content.AssignTopicsRequest;
 import com.sunmoon.backend.dto.request.content.SignImportRequest;
 import com.sunmoon.backend.dto.request.content.SignRequest;
 import com.sunmoon.backend.dto.request.content.SignSearchRequest;
@@ -89,6 +90,18 @@ public class SignController {
     }
 
     public record PublishRequest(List<UUID> ids, boolean published) {
+    }
+
+    @Operation(summary = "Gán chủ đề cho nhiều từ vựng cùng lúc",
+            description = "Mặc định THÊM chủ đề, giữ nguyên chủ đề đã có. "
+                    + "Đặt replace=true để thay thế toàn bộ chủ đề cũ. "
+                    + "setPrimary=true đặt luôn làm chủ đề chính, chỉ dùng được khi chọn đúng một chủ đề.")
+    @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
+    @PostMapping("/assign-topics")
+    public ResponseEntity<ResponseData<Map<String, Integer>>> assignTopics(
+            @Valid @RequestBody AssignTopicsRequest request) {
+        int affected = signService.assignTopics(request);
+        return ok(Map.of("affected", affected), "SIGN_TOPICS_ASSIGNED");
     }
 
     // ==================== NHAP HANG LOAT ====================

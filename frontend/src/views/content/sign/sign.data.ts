@@ -115,7 +115,41 @@ const renderRegionDots = (available: Region[] = []) => {
   );
 };
 
+/**
+ * Ảnh đại diện lấy từ video chính của từ (sign_videos.thumbnail_file_id).
+ *
+ * Khung ảnh giữ nguyên kích thước kể cả khi chưa có ảnh — nếu để trống hẳn,
+ * mỗi dòng trong bảng sẽ cao thấp khác nhau và mắt rất khó dò theo hàng.
+ */
+const renderThumbnail = (url?: string, wordVi?: string) =>
+  h(
+    'div',
+    {
+      style: [
+        'width:64px;height:48px;border-radius:4px;overflow:hidden',
+        'background:#EAF0F4;display:flex;align-items:center;justify-content:center',
+      ].join(';'),
+    },
+    url
+      ? [
+          h('img', {
+            src: url,
+            alt: `Ảnh ký hiệu từ ${wordVi ?? ''}`,
+            loading: 'lazy',
+            style: 'width:100%;height:100%;object-fit:cover',
+          }),
+        ]
+      : [h('span', { style: 'font-size:10px;color:#9AB0BC' }, 'Chưa có')],
+  );
+
 export const columns: BasicColumn[] = [
+  {
+    title: 'Ảnh',
+    dataIndex: 'thumbnailUrl',
+    width: 80,
+    fixed: 'left',
+    customRender: ({ record }) => renderThumbnail(record.thumbnailUrl, record.wordVi),
+  },
   {
     title: 'Từ tiếng Việt',
     dataIndex: 'wordVi',

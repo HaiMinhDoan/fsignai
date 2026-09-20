@@ -14,7 +14,7 @@ import { createPlaceholderMessage, sanitizeInputWhitespace } from '../helper';
  */
 export function getComponent(componentName) {
   const Component = componentMap.get(componentName as ComponentType);
-  if (!Component) throw `您还没注册此组件 ${componentName}`;
+  if (!Component) throw `Chưa đăng ký component ${componentName}`;
   return Component as ComponentOptions;
 }
 

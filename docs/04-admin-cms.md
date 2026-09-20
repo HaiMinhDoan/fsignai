@@ -63,9 +63,9 @@ Bảng điều khiển
 │   └── Báo cáo vi phạm
 │
 ├── AI
-│   ├── Exemplar theo từ        (từ nào đã chấm được / chưa)
-│   ├── Ngưỡng chấm điểm        (ba tầng — xem §5.1)
-│   └── Góp ý về chấm điểm      (lọc theo trọng số)
+│   ├── Exemplar theo từ        ✅ nằm trong màn Từ vựng: tab "Chấm điểm AI" + nút "Sinh mẫu AI"
+│   ├── Ngưỡng chấm điểm        ⏳ chưa dựng — đang dùng mặc định theo nhóm (ba tầng, xem §5.1)
+│   └── Góp ý về chấm điểm      ⏳ chưa dựng — dữ liệu 👍/👎 đã thu vào ai_check_feedback
 │
 ├── Người dùng
 │   ├── Danh sách
@@ -131,7 +131,14 @@ Chia tab:
 - **Thông tin** — từ tiếng Việt, gloss, tiếng Anh, đơn vị, từ loại, lĩnh vực, cấp độ, chủ đề, mô tả cách làm ký hiệu
 - **Video** — `Upload` nhiều file, mỗi video gắn **vùng miền** (B/T/N/Chung) + **góc quay** + đánh dấu video chính
 - **Từ liên quan** — chọn từ, gắn loại quan hệ: liên quan / đồng nghĩa / trái nghĩa / **dễ nhầm**
-- **AI** — danh sách exemplar, nút "Tạo lại exemplar", điểm chất lượng từng mẫu
+- **Chấm điểm AI** ✅ *(đã dựng 20.09.2026)* — bảng mẫu chấm điểm của từ: vùng miền, trạng thái
+  (Sẵn sàng / Lỗi kèm lý do / Đang dựng), điểm chất lượng theo dõi, nhãn phiên bản đặc trưng
+  (Hiện hành / Cũ — cần sinh lại), công tắc **Dùng để chấm** từng mẫu, và nút **Sinh lại mẫu từ video**.
+  Tắt mẫu thay cho xoá: video quay hỏng hoặc ký sai thì gỡ khỏi việc chấm nhưng vẫn giữ để truy vết.
+
+  Ngoài danh sách từ vựng có nút **Sinh mẫu AI** chạy lô cho các video chưa có mẫu: hiện độ phủ
+  (bao nhiêu video đã có mẫu, bao nhiêu từ chấm điểm được), ước tính thời gian, và tiến độ lượt
+  đang chạy. Chỉ một lượt chạy tại một thời điểm; đóng cửa sổ rồi mở lại vẫn xem được tiến độ.
 
 Trường **"dễ nhầm"** đáng bỏ công nhập: nó vừa cảnh báo người học, vừa là nguồn sinh đáp án nhiễu
 chất lượng cao cho quiz. Đáp án nhiễu ngẫu nhiên làm quiz quá dễ và không đo được gì.
@@ -181,6 +188,11 @@ phím tắt là khác biệt giữa vài phút và cả buổi.
 ---
 
 ## 5.1. Màn hình Ngưỡng chấm điểm
+
+> **Chưa dựng (20.09.2026).** Chấm điểm đang chạy bằng ngưỡng mặc định theo nhóm đã seed sẵn
+> (`verify_threshold_groups`), và `POST /ai-check/results/{id}/feedback` đã thu 👍/👎 kèm trọng số
+> chụp tại thời điểm góp ý. Màn hình này chỉ làm được khi đã có đủ lượt chấm thật để vẽ phân bố —
+> tự chỉnh ngưỡng khi chưa có dữ liệu thì chỉ là đoán.
 
 Bảng từ vựng kèm cột ngưỡng, `source` và `sample_count`. Chọn một từ → panel bên phải hiện:
 

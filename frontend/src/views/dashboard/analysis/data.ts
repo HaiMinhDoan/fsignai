@@ -9,35 +9,35 @@ export interface GrowCardItem {
 
 export const growCardList: GrowCardItem[] = [
   {
-    title: '访问数',
+    title: 'lượt truy cập',
     icon: 'visit-count|svg',
     value: 2000,
     total: 120000,
     color: 'green',
-    action: '月',
+    action: 'Tháng',
   },
   {
-    title: '成交额',
+    title: 'từ đã học',
     icon: 'total-sales|svg',
     value: 20000,
     total: 500000,
     color: 'blue',
-    action: '月',
+    action: 'Tháng',
   },
   {
-    title: '下载数',
+    title: 'video đã xem',
     icon: 'download-count|svg',
     value: 8000,
     total: 120000,
     color: 'orange',
-    action: '周',
+    action: 'Tuần',
   },
   {
-    title: '成交数',
+    title: 'bài đã hoàn thành',
     icon: 'transaction|svg',
     value: 5000,
     total: 50000,
     color: 'purple',
-    action: '年',
+    action: 'Năm',
   },
 ];

@@ -1,0 +1,140 @@
+/**
+ * Giao diện hai trang Đăng nhập / Đăng ký.
+ *
+ * Để ở đây thay vì <style scoped> trong từng file vì hai trang này phải giống
+ * nhau từng chi tiết — tách ra hai chỗ là kiểu gì cũng lệch dần sau vài lần sửa.
+ */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(900px 500px at 12% -10%, var(--si-kid-sky), transparent 60%),
+    radial-gradient(800px 520px at 100% 110%, var(--si-kid-mint), transparent 60%),
+    var(--si-kid-cream);
+}
+
+.auth-card {
+  background: var(--si-surface);
+  border: 2px solid var(--si-border);
+  border-radius: var(--si-kid-radius-lg);
+  padding: 28px 32px 32px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--si-kid-shadow);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+.auth-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--si-kid-sun);
+  color: var(--si-text);
+}
+.auth-brand-text {
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--si-primary);
+}
+
+.auth-card h1 {
+  margin: 0 0 4px;
+  font-size: 30px;
+}
+.auth-subtitle {
+  color: var(--si-text-muted);
+  margin: 0 0 22px;
+}
+
+.auth-field {
+  display: block;
+  margin-bottom: 16px;
+}
+.auth-field > span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.auth-field input {
+  width: 100%;
+  height: 54px; /* vùng bấm rộng rãi — §7.3 */
+  padding: 0 16px;
+  border: 2px solid var(--si-border);
+  border-radius: var(--si-kid-radius);
+  font-family: inherit;
+  font-size: 17px;
+  background: var(--si-kid-cream);
+  color: var(--si-text);
+}
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--si-primary);
+  box-shadow: 0 0 0 4px var(--si-primary-light);
+}
+.auth-field small {
+  display: block;
+  margin-top: 6px;
+  color: var(--si-text-muted);
+  font-size: 14px;
+}
+
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
+  padding: 10px 14px;
+  border: 2px solid var(--si-danger);
+  border-radius: var(--si-kid-radius);
+  color: var(--si-danger);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.auth-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  background: var(--si-primary);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: var(--si-kid-shadow);
+  transition: transform 160ms ease;
+}
+.auth-submit:hover:not(:disabled) {
+  background: var(--si-primary-dark);
+  transform: translateY(-2px);
+}
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-switch {
+  text-align: center;
+  margin: 20px 0 0;
+  font-size: 16px;
+  color: var(--si-text-muted);
+}

@@ -36,4 +36,30 @@ public interface SignVideoRepository extends JpaRepository<SignVideo, UUID>, Jpa
     // Vung mien nao da co video - phuc vu bo loc "vung mien con thieu video"
     @Query("SELECT DISTINCT v.region FROM SignVideo v WHERE v.sign.id = :signId")
     List<Region> findRegionsBySignId(@Param("signId") UUID signId);
+
+    /**
+     * Video chính của NHIỀU từ trong một truy vấn.
+     *
+     * Bài học có thể chứa vài chục từ; nếu tra video cho từng từ thì một lần mở
+     * bài học sẽ bắn vài chục truy vấn. Trả về cả các vùng miền rồi để service
+     * chọn (ưu tiên COMMON) vì mỗi vùng miền có một video chính riêng.
+     */
+    @Query("""
+            SELECT v FROM SignVideo v
+              JOIN FETCH v.file
+              LEFT JOIN FETCH v.thumbnailFile
+             WHERE v.sign.id IN :signIds
+               AND v.isPrimary = true
+               AND v.file IS NOT NULL
+            """)
+    List<SignVideo> findPrimaryVideosBySignIds(@Param("signIds") List<UUID> signIds);
+
+    /** Video kèm file và từ — dùng khi sinh exemplar, nơi chạy ngoài transaction sẽ gặp lazy-loading */
+    @Query("""
+            SELECT v FROM SignVideo v
+              JOIN FETCH v.file
+              JOIN FETCH v.sign
+             WHERE v.id = :id
+            """)
+    Optional<SignVideo> findWithFileById(@Param("id") UUID id);
 }

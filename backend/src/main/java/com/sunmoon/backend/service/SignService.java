@@ -2,6 +2,7 @@ package com.sunmoon.backend.service;
 
 import com.sunmoon.backend.constant.enums.Region;
 import com.sunmoon.backend.constant.enums.ViewAngle;
+import com.sunmoon.backend.dto.request.content.AssignTopicsRequest;
 import com.sunmoon.backend.dto.request.content.SignImportRequest;
 import com.sunmoon.backend.dto.request.content.SignRequest;
 import com.sunmoon.backend.dto.request.content.SignSearchRequest;
@@ -33,6 +34,12 @@ public interface SignService extends BaseService<Sign, UUID> {
 
     // Nhap hang loat tu Excel da duoc frontend phan tich thanh JSON
     SignImportResultResponse importSigns(SignImportRequest request);
+
+    /**
+     * Gan chu de cho nhieu tu vung cung luc.
+     * Tra ve so tu thuc su bi thay doi.
+     */
+    int assignTopics(AssignTopicsRequest request);
 
     // ===== Video =====
 

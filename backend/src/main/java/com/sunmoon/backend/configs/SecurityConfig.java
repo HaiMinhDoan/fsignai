@@ -96,7 +96,11 @@ public class SecurityConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 // allow all origins, methods, and headers
                 .allowedOrigins("*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                // PATCH phải có mặt ở ĐÂY, không chỉ ở corsConfigurationSource() phía trên.
+                // Trình duyệt gửi kèm Origin cho mọi phương thức khác GET/HEAD, kể cả khi đi qua proxy
+                // cùng origin của Vite; phương thức không nằm trong danh sách này bị CORS của Spring MVC
+                // chặn thẳng bằng 403 trước khi vào controller — gọi bằng curl thì vẫn chạy, nên rất khó đoán.
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
     }
 }

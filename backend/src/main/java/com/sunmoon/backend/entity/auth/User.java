@@ -62,6 +62,15 @@ public class User {
     @Column(name = "age_range", length = 20)
     private AgeRange ageRange;
 
+    // Chọn lúc đăng ký: học sinh (CHILD) / phụ huynh (PARENT) / giáo viên (TEACHER).
+    // ADULT là giá trị dự phòng của cột, không có lựa chọn nào ở form đăng ký trỏ tới nó.
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'ADULT'")
+    @Column(name = "account_kind", nullable = false, length = 20)
+    @Builder.Default
+    private AccountKind accountKind = AccountKind.ADULT;
+
     // Quan hệ với cộng đồng khiếm thính - câu hỏi bắt buộc lúc đăng ký
     @NotNull
     @Enumerated(EnumType.STRING)

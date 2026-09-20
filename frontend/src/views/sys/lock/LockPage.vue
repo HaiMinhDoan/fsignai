@@ -42,7 +42,7 @@
             {{ t('sys.lock.alert') }}
           </span>
           <div :class="`${prefixCls}-entry__footer enter-x`">
-            <a-button
+            <Button
               type="link"
               size="small"
               class="mt-2 mr-2 enter-x"
@@ -50,8 +50,8 @@
               @click="handleShowForm(true)"
             >
               {{ t('common.back') }}
-            </a-button>
-            <a-button
+            </Button>
+            <Button
               type="link"
               size="small"
               class="mt-2 mr-2 enter-x"
@@ -59,10 +59,10 @@
               @click="goLogin"
             >
               {{ t('sys.lock.backToLogin') }}
-            </a-button>
-            <a-button class="mt-2" type="link" size="small" @click="unLock()" :loading="loading">
+            </Button>
+            <Button class="mt-2" type="link" size="small" @click="unLock()" :loading="loading">
               {{ t('sys.lock.entry') }}
-            </a-button>
+            </Button>
           </div>
         </div>
       </div>
@@ -77,6 +77,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+  import { Button } from '@/components/Button';
   import { ref, computed } from 'vue';
   import { Input } from 'ant-design-vue';
   import { useUserStore } from '@/store/modules/user';

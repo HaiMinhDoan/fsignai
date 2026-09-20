@@ -51,7 +51,7 @@ public class OpenApiConfig {
     public GroupedOpenApi allApi(RequireAuthOperationCustomizer customizer) {
         return GroupedOpenApi.builder()
                 .group("all")
-                .packagesToScan("com.unitel.fms.backend.controllers")
+                .packagesToScan("com.sunmoon.backend.controllers")
                 .addOperationCustomizer(customizer)
                 .build();
     }

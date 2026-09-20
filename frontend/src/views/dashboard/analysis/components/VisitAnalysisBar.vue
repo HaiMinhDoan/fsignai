@@ -26,7 +26,7 @@
       grid: { left: '1%', right: '1%', top: '2  %', bottom: 0, containLabel: true },
       xAxis: {
         type: 'category',
-        data: [...new Array(12)].map((_item, index) => `${index + 1}月`),
+        data: [...new Array(12)].map((_item, index) => `Tháng ${index + 1}`),
       },
       yAxis: {
         type: 'value',

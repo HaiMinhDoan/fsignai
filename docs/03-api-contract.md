@@ -101,28 +101,51 @@ GET    /me/quiz-history            ?page=&size=
 Đáp án đúng **không bao giờ** xuất hiện trong response `GET /quizzes/{id}`. Chấm điểm ở server.
 
 ### AI Checking
-```
-POST   /ai-check/verify
-  { "signId": 42,
-    "landmarks": { "fps": 30, "frameCount": 48,
-                   "pose": [[x,y,z,visibility], ...],
-                   "leftHand": [...], "rightHand": [...] },
-    "consentToStore": false }
 
-  → { "score": 87, "passed": true,
+> **Cập nhật 20.09.2026** — khớp với bản đã cài đặt (Mức A: chỉ luyện tập, không cộng sao). Khác bản nháp cũ:
+> landmark gửi theo **khung hình** (không tách `pose/leftHand/rightHand` thành ba mảng), bàn tay **không gắn nhãn
+> trái/phải** (nhãn của MediaPipe đảo theo việc ảnh có lật gương hay không — service tự gán theo cổ tay của pose),
+> có `aspect`, và dùng Pose + Hand Landmarker chứ không phải Holistic (xem [01-ai-model-research.md](01-ai-model-research.md)).
+
+```
+POST   /ai-check/verify                                  (đăng nhập; 30 lượt/phút/người → 429)
+  { "signId": "<uuid>",
+    "landmarks": {
+      "aspect": 1.7778,                     // rộng / cao của khung hình đã quay (chưa lật gương)
+      "frames": [                           // 8–400 khung, ~15 khung/giây
+        { "pose":  [[x,y,z,visibility] × 33] | null,
+          "hands": [[[x,y,z] × 21], ...] }  // 0–2 bàn tay
+      ] },
+    "context": "PRACTICE" }                 // tuỳ chọn
+
+  → { "resultId": "<uuid>", "signId": "...", "score": 87.4, "passed": true,
       "feedback": { "handshape": 92, "location": 71, "movement": 88,
-                    "hints": ["Hình tay chính xác.",
-                              "Thử đưa tay lên cao hơn một chút, ngang cằm."] },
-      "modelVersion": "verify-v1.2" }
+                    "hints": ["Hình tay chính xác.", "Thử đưa tay lên cao hơn một chút."],
+                    "hintCodes": ["HANDSHAPE_OK", "LOCATION_TOO_LOW"] },
+      "modelVersion": "verify-dtw-v1", "checkedAt": "..." }
 ```
 
-Spring Boot chuyển tiếp sang FastAPI, nhận `score`, **tự quyết định `passed`** theo ngưỡng cấu hình
-được cho từng từ, rồi ghi `ai_check_results` và cập nhật progress. FastAPI không biết ngưỡng là bao nhiêu.
+Toạ độ x, y chuẩn hoá `[0,1]` theo khung hình **chưa lật gương**. Video của người học **không rời khỏi máy** —
+MediaPipe chạy trong trình duyệt, chỉ landmark được gửi (vài chục KB).
+
+Spring Boot chuyển tiếp sang ai-service cùng exemplar của từ, nhận về **khoảng cách** (không phải điểm), **tự tra
+ngưỡng và quyết định `passed`**, quy ra điểm rồi ghi `ai_check_results`. ai-service không biết ngưỡng là bao nhiêu.
+- `passed ⇔ distance ≤ ngưỡng`; `score = 100 × 0,6^(distance / ngưỡng)` (đúng ngưỡng = 60 điểm).
+- Ngưỡng: `verify_thresholds` của từ nếu có, không thì `verify_threshold_groups` theo (unit_type × số tay). Số tay lấy
+  `max(signs.hand_count, số tay đo được từ mẫu)` vì cột `hand_count` đang là 1 cho cả kho (mặc định chưa ai nhập).
+- Lỗi do người học có lời khuyên tiếng Việt trong `message`: `422` `NO_BODY` (không thấy hai vai), `NO_SIGN`
+  (chưa giơ tay); `409` `NO_EXEMPLAR` (từ chưa có mẫu); `429` `RATE_LIMITED`; `503` `AI_SERVICE_DOWN`.
+- Mức A: **không cộng sao**; chỉ ghi `ai_check_results` và tính vào chuỗi ngày học (`daily_activity.ai_checks_done`).
+- Chưa hỗ trợ `consentToStore` (lưu landmark người học): `consent_to_store` luôn `false`, không lưu file nào.
 
 ```
-GET    /ai-check/history           ?signId=&page=
-GET    /ai-check/signs/{id}/readiness   → từ này đã có exemplar chưa (ẩn nút nếu chưa)
+GET    /ai-check/signs/{id}/readiness   → { ready, exemplarCount }   (công khai; ẩn nút nếu ready = false)
+GET    /ai-check/history                ?signId=&page=&size=          (của chính mình)
+POST   /ai-check/results/{id}/feedback  { verdict: "AGREE" | "DISAGREE", note? }
 ```
+
+Góp ý 👍/👎 là một dòng cho mỗi (người, kết quả), gửi lại thì cập nhật. `weight_snapshot` chụp lại lúc góp ý:
+chuyên gia VSL **đã xác minh** = 5, người học = 1, chuyên gia chưa xác minh = 0 (lưu, kích hoạt khi được duyệt).
 
 ### Tiến độ
 ```
@@ -145,7 +168,11 @@ DELETE /push/subscribe
 ```
 GET|POST|PUT|DELETE  /admin/signs
 POST                 /admin/signs/{id}/videos        (multipart)
-POST                 /admin/signs/{id}/exemplars/rebuild   → gọi FastAPI /embed
+GET                  /admin/signs/{id}/exemplars                   → các mẫu chấm điểm của từ
+POST                 /admin/signs/{id}/exemplars/rebuild           → chạy MediaPipe (ai-service /extract) trên từng video của từ
+PATCH                /admin/exemplars/{id}/active?active=          → tắt/bật một mẫu
+POST                 /admin/ai/exemplars/build-missing?limit=&retryFailed=   → job nền cho video còn thiếu mẫu
+GET                  /admin/ai/exemplars/status                    → tiến độ job + độ phủ toàn kho
 GET|POST|PUT|DELETE  /admin/topics | /admin/courses | /admin/lessons | /admin/quizzes
 GET                  /admin/users        ?q=&userType=
 GET                  /admin/stats
@@ -291,4 +318,4 @@ Mọi thứ có tính điểm phải đi qua Spring Boot:
 - Bài kiểm tra có `time_limit_seconds` → server kiểm tra `submitted_at - started_at`.
 - Với `AI_PERFORM`: client **không** được gọi thẳng FastAPI; phải qua `POST /ai-check/verify`.
 - Token WebSocket TTL 60 giây, gắn với một `signId` cụ thể, dùng một lần.
-- Rate limit `/ai-check/verify`: 30 request/phút/user (Redis).
+- Rate limit `/ai-check/verify`: 30 request/phút/user. Hiện là bộ đếm cửa sổ trượt TRONG BỘ NHỚ (đủ cho một instance); nhiều instance thì chuyển sang Redis (`RedisService` đã có) vì mỗi instance sẽ đếm riêng.

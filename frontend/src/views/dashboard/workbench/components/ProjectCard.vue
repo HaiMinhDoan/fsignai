@@ -1,7 +1,7 @@
 <template>
-  <Card title="项目" v-bind="$attrs">
+  <Card title="Nhóm nội dung" v-bind="$attrs">
     <template #extra>
-      <a-button type="link" size="small">更多</a-button>
+      <Button type="link" size="small">Xem thêm</Button>
     </template>
 
     <CardGrid v-for="item in groupItems" :key="item.title" class="!md:w-1/3 !w-full">
@@ -18,6 +18,7 @@
   </Card>
 </template>
 <script lang="ts" setup>
+  import { Button } from '@/components/Button';
   import { Card, CardGrid } from 'ant-design-vue';
   import Icon from '@/components/Icon/Icon.vue';
   import { groupItems } from './data';

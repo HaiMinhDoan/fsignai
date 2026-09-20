@@ -36,6 +36,51 @@ const content: AppRouteModule = {
         icon: 'ant-design:apartment-outlined',
       },
     },
+    {
+      path: 'course',
+      name: 'CourseManagement',
+      component: () => import('@/views/content/course/index.vue'),
+      meta: {
+        title: 'Khoá học',
+        icon: 'ant-design:read-outlined',
+      },
+    },
+    {
+      path: 'word-pack',
+      name: 'WordPackManagement',
+      component: () => import('@/views/content/wordpack/index.vue'),
+      meta: {
+        title: 'Gói từ',
+        icon: 'ant-design:cluster-outlined',
+      },
+    },
+    {
+      path: 'quiz',
+      name: 'QuizManagement',
+      component: () => import('@/views/content/quiz/index.vue'),
+      meta: {
+        title: 'Ngân hàng câu hỏi',
+        icon: 'ant-design:question-circle-outlined',
+      },
+    },
+    {
+      path: 'quiz-blueprint',
+      name: 'QuizBlueprintManagement',
+      component: () => import('@/views/content/quiz-blueprint/index.vue'),
+      meta: {
+        title: 'Cấu hình đề trộn',
+        icon: 'ant-design:control-outlined',
+      },
+    },
+    {
+      path: 'blog',
+      name: 'BlogManagement',
+      component: () => import('@/views/content/blog/index.vue'),
+      meta: {
+        title: 'Blog',
+        icon: 'ant-design:file-text-outlined',
+      },
+    },
   ],
 };
 

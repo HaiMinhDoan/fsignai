@@ -7,6 +7,8 @@ import type {
   SignModel,
   SignSaveParams,
   SignSearchParams,
+  SignStepModel,
+  SignStepSaveParams,
   SignVideoModel,
   ViewAngle,
 } from './model/contentModel';
@@ -41,6 +43,24 @@ export const signDeleteApi = (id: string) =>
 export const signPublishApi = (ids: string[], published: boolean) =>
   defHttp.post<{ affected: number }>(
     { url: Api.PUBLISH, data: { ids, published } },
+    { successMessageMode: 'message' },
+  );
+
+/**
+ * Gán chủ đề cho nhiều từ cùng lúc.
+ *
+ * Từ điển Bộ GD&ĐT nạp về không kèm chủ đề, nên đây là đường duy nhất khả thi
+ * để phân loại hơn 3.300 từ. Chưa gán chủ đề thì không sinh được khoá học,
+ * không trộn được đề theo chủ đề, và người học cũng không duyệt theo chủ đề được.
+ */
+export const signAssignTopicsApi = (params: {
+  signIds: string[];
+  topicIds: string[];
+  replace?: boolean;
+  setPrimary?: boolean;
+}) =>
+  defHttp.post<{ affected: number }>(
+    { url: `${Api.BASE}/assign-topics`, data: params, timeout: 60 * 1000 },
     { successMessageMode: 'message' },
   );
 
@@ -100,5 +120,55 @@ export const signVideoSetPrimaryApi = (signId: string, videoId: string) =>
 export const signVideoDeleteApi = (signId: string, videoId: string) =>
   defHttp.delete<void>(
     { url: `${Api.BASE}/${signId}/videos/${videoId}` },
+    { successMessageMode: 'message' },
+  );
+
+// ==================== Hướng dẫn từng bước ====================
+
+export const signStepListApi = (signId: string) =>
+  defHttp.get<SignStepModel[]>({ url: `${Api.BASE}/${signId}/steps` });
+
+export const signStepCreateApi = (signId: string, params: SignStepSaveParams) =>
+  defHttp.post<SignStepModel>(
+    { url: `${Api.BASE}/${signId}/steps`, data: params },
+    { successMessageMode: 'message' },
+  );
+
+export const signStepUpdateApi = (signId: string, stepId: string, params: SignStepSaveParams) =>
+  defHttp.put<SignStepModel>(
+    { url: `${Api.BASE}/${signId}/steps/${stepId}`, data: params },
+    { successMessageMode: 'message' },
+  );
+
+export const signStepDeleteApi = (signId: string, stepId: string) =>
+  defHttp.delete<void>(
+    { url: `${Api.BASE}/${signId}/steps/${stepId}` },
+    { successMessageMode: 'message' },
+  );
+
+/** Gửi nguyên mảng id theo thứ tự mới — cùng cách sắp xếp câu hỏi đề thi và nội dung bài học */
+export const signStepReorderApi = (signId: string, orderedIds: string[]) =>
+  defHttp.put<SignStepModel[]>(
+    { url: `${Api.BASE}/${signId}/steps/reorder`, data: { orderedIds } },
+    { successMessageMode: 'message' },
+  );
+
+export const signStepImageUploadApi = (signId: string, stepId: string, file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return defHttp.post<SignStepModel>(
+    {
+      url: `${Api.BASE}/${signId}/steps/${stepId}/image`,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 2 * 60 * 1000,
+    },
+    { successMessageMode: 'message' },
+  );
+};
+
+export const signStepImageDeleteApi = (signId: string, stepId: string) =>
+  defHttp.delete<void>(
+    { url: `${Api.BASE}/${signId}/steps/${stepId}/image` },
     { successMessageMode: 'message' },
   );

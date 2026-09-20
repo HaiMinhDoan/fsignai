@@ -1,0 +1,126 @@
+# SignAI — chạy thật bằng 2 lệnh:
+#   docker compose build --no-cache
+#   docker compose up -d
+#
+# CSDL PostgreSQL, MinIO, Redis, Kafka KHÔNG nằm trong đây: chúng đã chạy sẵn ở 171.244.142.43.
+# Chỉnh địa chỉ và mật khẩu trong tệp .env (chép từ .env.example).
+
+name: fsign
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ---------------------------------------------------------------- Backend
+  fsign-backend:
+    build:
+      context: ./backend
+    image: fsign/backend:latest
+    container_name: fsign-backend
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+
+      SPRING_DATASOURCE_URL: ${DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # MINIO_ENDPOINT: server dùng để tải tệp lên/xuống — đi thẳng vào MinIO, không qua proxy
+      # nên không dính giới hạn dung lượng khi nạp video 500MB.
+      # MINIO_DOMAIN: địa chỉ TRÌNH DUYỆT của bé dùng để xem video — phải HTTPS khi trang chạy
+      # HTTPS, nếu không trình duyệt chặn sạch video vì nội dung hỗn hợp (mixed content).
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_DOMAIN: ${MINIO_DOMAIN:-}
+      MINIO_ENDPOINTUI: ${MINIO_ENDPOINT_UI}
+      MINIO_ACCESSKEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRETKEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKETNAME: ${MINIO_BUCKET:-fsignai}
+
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_SERVERS}
+
+      # Gọi service AI qua mạng nội bộ, không đi ra ngoài
+      AI_SERVICE_URL: http://fsign-ai:8001
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET}
+      AI_EXEMPLAR_JOB_WORKERS: ${AI_EXEMPLAR_JOB_WORKERS:-4}
+
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    networks:
+      - web       # để nginx-proxy-manager trỏ tên miền vào (nếu cần Swagger/API công khai)
+      - internal  # để nói chuyện với fsign-ai
+    depends_on:
+      - fsign-ai
+    mem_limit: 2g
+
+  # ---------------------------------------------------------------- AI service (chỉ nội bộ)
+  fsign-ai:
+    build:
+      context: ./ai-service
+    image: fsign/ai-service:latest
+    container_name: fsign-ai
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET}
+      AI_MAX_CONCURRENCY: ${AI_MAX_CONCURRENCY:-4}
+    networks:
+      - internal   # CỐ Ý không nối vào mạng web: chỉ backend gọi được
+    # Mở cổng ra localhost của máy chủ để kiểm tra/gỡ lỗi; bỏ dòng này là đóng hẳn.
+    ports:
+      - "127.0.0.1:8001:8001"
+    mem_limit: 3g
+
+  # ---------------------------------------------------------------- CMS (vben admin)
+  fsign-cms:
+    build:
+      context: ./frontend
+      target: cms
+    image: fsign/cms:latest
+    container_name: fsign-cms
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    networks:
+      - web
+    depends_on:
+      - fsign-backend
+    mem_limit: 256m
+
+  # ---------------------------------------------------------------- Portal (app cho bé)
+  fsign-portal:
+    build:
+      context: ./frontend
+      target: portal
+    image: fsign/portal:latest
+    container_name: fsign-portal
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    networks:
+      - web
+    depends_on:
+      - fsign-backend
+    mem_limit: 256m
+
+networks:
+  # Mạng dùng chung với nginx-proxy-manager. Nếu chưa có:  docker network create slm_v2_app-network
+  web:
+    name: ${SHARED_NETWORK:-slm_v2_app-network}
+    external: true
+  # Mạng riêng của SignAI, docker tự tạo. Chỉ backend và ai-service nằm trong đây.
+  internal:
+    name: fsign-internal
+    driver: bridge

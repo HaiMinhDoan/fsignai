@@ -2,7 +2,7 @@
   <PageWrapper dense contentFullHeight fixedHeight>
     <BasicTable @register="registerTable">
       <template #toolbar>
-        <a-button type="primary" @click="handleCreate">Thêm chủ đề</a-button>
+        <Button type="primary" @click="handleCreate">Thêm chủ đề</Button>
       </template>
 
       <template #bodyCell="{ column, record }">
@@ -35,6 +35,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { Button } from '@/components/Button';
   import { BasicTable, useTable, TableAction } from '@/components/Table';
   import { PageWrapper } from '@/components/Page';
   import { useDrawer } from '@/components/Drawer';

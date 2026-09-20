@@ -116,6 +116,9 @@ interface _CustomComponents {
     (typeof import('@/components/Upload/src/components/ImageUpload.vue'))['default']
   >;
   IconPicker: ExtractPropTypes<(typeof import('@/components/Icon/src/IconPicker.vue'))['default']>;
+  ColorPicker: ExtractPropTypes<
+    (typeof import('@/components/ColorPicker/src/ColorPicker.vue'))['default']
+  >;
   ApiTransfer: ExtractPropTypes<(typeof import('../components/ApiTransfer.vue'))['default']>;
   CropperAvatar: ExtractPropTypes<
     (typeof import('@/components/Cropper/src/CropperAvatar.vue'))['default']
@@ -165,6 +168,7 @@ export interface ComponentProps {
   Upload: CustomComponents['Upload'];
   ImageUpload: CustomComponents['ImageUpload'];
   IconPicker: CustomComponents['IconPicker'];
+  ColorPicker: CustomComponents['ColorPicker'];
   Render: Record<string, any>;
   Slider: ExtractPropTypes<(typeof import('ant-design-vue/es/slider'))['default']>;
   Rate: ExtractPropTypes<(typeof import('ant-design-vue/es/rate'))['default']>;

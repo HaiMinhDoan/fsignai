@@ -6,15 +6,15 @@
     <DetailModal :info="rowInfo" @register="registerModal" />
     <BasicTable @register="register" class="error-handle-table">
       <template #toolbar>
-        <a-button @click="fireVueError" type="primary">
+        <Button @click="fireVueError" type="primary">
           {{ t('sys.errorLog.fireVueError') }}
-        </a-button>
-        <a-button @click="fireResourceError" type="primary">
+        </Button>
+        <Button @click="fireResourceError" type="primary">
           {{ t('sys.errorLog.fireResourceError') }}
-        </a-button>
-        <a-button @click="fireAjaxError" type="primary">
+        </Button>
+        <Button @click="fireAjaxError" type="primary">
           {{ t('sys.errorLog.fireAjaxError') }}
-        </a-button>
+        </Button>
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
@@ -33,6 +33,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { Button } from '@/components/Button';
   import type { ErrorLogInfo } from '#/store';
   import { watch, ref, nextTick } from 'vue';
   import DetailModal from './DetailModal.vue';

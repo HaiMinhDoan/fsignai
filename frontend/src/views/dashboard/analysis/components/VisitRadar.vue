@@ -1,5 +1,5 @@
 <template>
-  <Card title="转化率" :loading="loading">
+  <Card title="Mức độ hoàn thành" :loading="loading">
     <div ref="chartRef" :style="{ width, height }"></div>
   </Card>
 </template>
@@ -31,7 +31,7 @@
       setOptions({
         legend: {
           bottom: 0,
-          data: ['访问', '购买'],
+          data: ['Đã xem', 'Đã luyện'],
         },
         tooltip: {},
         radar: {
@@ -39,22 +39,22 @@
           splitNumber: 8,
           indicator: [
             {
-              name: '电脑',
+              name: 'Bảng chữ cái',
             },
             {
-              name: '充电器',
+              name: 'Số đếm',
             },
             {
-              name: '耳机',
+              name: 'Gia đình',
             },
             {
-              name: '手机',
+              name: 'Giao tiếp',
             },
             {
               name: 'Ipad',
             },
             {
-              name: '耳机',
+              name: 'Gia đình',
             },
           ],
         },
@@ -72,14 +72,14 @@
             data: [
               {
                 value: [90, 50, 86, 40, 50, 20],
-                name: '访问',
+                name: 'Đã xem',
                 itemStyle: {
                   color: '#b6a2de',
                 },
               },
               {
                 value: [70, 75, 70, 76, 20, 85],
-                name: '购买',
+                name: 'Đã luyện',
                 itemStyle: {
                   color: '#5ab1ef',
                 },

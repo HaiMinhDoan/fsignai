@@ -38,6 +38,7 @@ public class UserProfileResponse {
     Boolean emailVerified;
 
     UserType userType;
+    AccountKind accountKind;
     AgeRange ageRange;
     Region region;
     String address;
