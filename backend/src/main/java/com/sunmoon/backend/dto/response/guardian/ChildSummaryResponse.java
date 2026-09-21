@@ -5,7 +5,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.UUID;
 
-/** Một bé mà phụ huynh/thầy cô đang theo dõi */
+/** Một người học mà phụ huynh/thầy cô đang theo dõi */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

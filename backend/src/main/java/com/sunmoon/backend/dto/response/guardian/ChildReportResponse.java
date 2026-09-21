@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Báo cáo học tập của một bé — đúng bốn ô chỉ số và biểu đồ tuần của
+ * Báo cáo học tập của một người học — đúng bốn ô chỉ số và biểu đồ tuần của
  * Figma 1:2 "Bảng Đồng Hành".
  */
 @NoArgsConstructor
@@ -31,7 +31,7 @@ public class ChildReportResponse {
 
     /**
      * Ô 3 — độ chính xác chấm bằng camera. null khi chưa dựng service AI;
-     * giao diện phải hiện "chưa bật" chứ KHÔNG được hiện số 0 như thể bé sai hết.
+     * giao diện phải hiện "chưa bật" chứ KHÔNG được hiện số 0 như thể người học sai hết.
      */
     Integer aiAccuracyPercent;
 

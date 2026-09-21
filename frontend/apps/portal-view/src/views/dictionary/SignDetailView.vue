@@ -62,7 +62,7 @@
         <p class="stage-title"><SiIcon name="play" :size="20" /><span>Mẫu</span></p>
 
         <!-- Khung video tuyệt đối trung tính: không viền màu, không nền pastel,
-             không gradient. Mắt bé phải đọc được hình bàn tay và sắc mặt
+             không gradient. Mắt người học phải đọc được hình bàn tay và sắc mặt
              (docs/05-design-system.md §2.1) -->
         <div class="media-frame">
           <video
@@ -81,7 +81,7 @@
 
         <div v-if="activeVideo" class="controls">
           <!-- Tốc độ chậm là công cụ học thật sự, không phải trang trí: bàn tay
-               đi nhanh thì bé không kịp thấy khẩu hình và điểm chạm -->
+               đi nhanh thì người học không kịp thấy khẩu hình và điểm chạm -->
           <div class="control-group" role="group" aria-label="Tốc độ phát">
             <span class="control-label"><SiIcon name="slow" :size="18" /><span>Tốc độ</span></span>
             <button
@@ -120,10 +120,10 @@
 
       <!-- Cột gương -->
       <div class="stage">
-        <p class="stage-title"><SiIcon name="camera" :size="20" /><span>Gương của bé</span></p>
+        <p class="stage-title"><SiIcon name="camera" :size="20" /><span>Gương của bạn</span></p>
 
         <div class="media-frame mirror-frame">
-          <!-- Lật ngang để bé thấy mình như soi gương: không lật thì bé giơ tay
+          <!-- Lật ngang để người học thấy mình như soi gương: không lật thì người học giơ tay
                phải lại thấy hình giơ tay trái và bắt chước ngược -->
           <video v-show="mirrorOn" ref="mirrorVideo" class="mirror" autoplay playsinline muted></video>
 
@@ -143,7 +143,7 @@
           </button>
           <button type="button" class="btn btn-sun" @click="cheer">
             <SiIcon name="sparkles" :size="20" />
-            <span>Bé làm được rồi!</span>
+            <span>Bạn làm được rồi!</span>
           </button>
         </div>
 
@@ -164,7 +164,7 @@
         <p v-else-if="aiReady" class="ai-login">
           <SiIcon name="sparkles" :size="20" />
           <span>
-            <RouterLink to="/dang-nhap">Đăng nhập</RouterLink> để Mochi chấm điểm ký hiệu của bé bằng AI nhé.
+            <RouterLink to="/dang-nhap">Đăng nhập</RouterLink> để Mochi chấm điểm ký hiệu của bạn bằng AI nhé.
           </span>
         </p>
       </div>
@@ -244,7 +244,7 @@
   /** Từ này đã có mẫu để AI chấm chưa — chưa có thì ẩn hẳn nút, không hứa điều chưa làm được */
   const aiReady = ref(false);
 
-  /** Panel AI cần webcam đang chạy: bật giúp bé nếu bé chưa bật gương */
+  /** Panel AI cần webcam đang chạy: bật giúp người học nếu chưa bật gương */
   async function ensureCamera(): Promise<boolean> {
     if (!mirrorOn.value) await toggleMirror();
     return mirrorOn.value;
@@ -327,9 +327,9 @@
       if (mirrorVideo.value) mirrorVideo.value.srcObject = mirrorStream;
       mirrorOn.value = true;
     } catch {
-      // Bé từ chối quyền, máy không có webcam, hoặc trang chạy trên http không
+      // Người học từ chối quyền, máy không có webcam, hoặc trang chạy trên http không
       // phải localhost — cả ba đều rơi vào đây và cần một câu nói rõ việc
-      mirrorError.value = 'Chưa mở được camera. Bé hỏi người lớn cho phép dùng camera nhé.';
+      mirrorError.value = 'Chưa mở được camera. Bạn cho phép trình duyệt dùng camera nhé.';
       mirrorOn.value = false;
     }
   }

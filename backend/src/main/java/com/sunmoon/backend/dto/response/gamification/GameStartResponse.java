@@ -22,7 +22,7 @@ public class GameStartResponse {
     /** Số vòng/cặp - đúng hết thì đủ điểm tối đa */
     Integer totalRounds;
 
-    /** MATCH_PAIR, MEMORY_FLIP: các cặp (video ↔ chữ) để bé nối/lật */
+    /** MATCH_PAIR, MEMORY_FLIP: các cặp (video ↔ chữ) để người học nối/lật */
     List<GameSign> pairs;
     /** SPEED_GUESS, FINGER_DANCE: từng câu đoán */
     List<GameQuestion> questions;

@@ -24,7 +24,7 @@ public class LearnerStatsServiceImpl implements LearnerStatsService {
     public LearnerStatsResponse getStats(UUID userId) {
         // Cố ý KHÔNG tạo bản ghi ở đây: đây là API chỉ đọc, gọi mỗi lần đổi
         // trang. Người chưa học ngày nào thì trả số 0, bản ghi thật sẽ do
-        // StreakService tạo lúc bé thực sự học.
+        // StreakService tạo lúc người học thực sự học.
         int current = userStreakRepository.findByUserId(userId)
                 .map(UserStreak::getCurrentStreak).orElse(0);
         int longest = userStreakRepository.findByUserId(userId)
@@ -36,7 +36,7 @@ public class LearnerStatsServiceImpl implements LearnerStatsService {
 
         // Cấp độ suy ra từ tổng điểm chứ không đọc cột level: cột đó là bộ
         // nhớ đệm, còn công thức ở đây mới là định nghĩa. Hai chỗ lệch nhau
-        // thì con số hiện cho bé vẫn đúng.
+        // thì con số hiện cho người học vẫn đúng.
         int perLevel = UserPoints.POINTS_PER_LEVEL;
         int level = total / perLevel + 1;
         int inLevel = total % perLevel;

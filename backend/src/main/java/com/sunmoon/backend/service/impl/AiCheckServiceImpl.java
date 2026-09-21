@@ -114,7 +114,7 @@ public class AiCheckServiceImpl implements AiCheckService {
 
         List<LoadedExemplar> exemplars = exemplarService.loadUsable(sign.getId());
         if (exemplars.isEmpty()) {
-            throw fail(HttpStatus.CONFLICT, "Từ này chưa có mẫu để chấm điểm, bé luyện với video nhé", "NO_EXEMPLAR");
+            throw fail(HttpStatus.CONFLICT, "Từ này chưa có mẫu để chấm điểm, bạn luyện với video nhé", "NO_EXEMPLAR");
         }
 
         // Cố ý KHÔNG bọc trong transaction: cuộc gọi sang ai-service kéo dài, không nên giữ kết nối CSDL.
@@ -286,7 +286,7 @@ public class AiCheckServiceImpl implements AiCheckService {
         synchronized (q) {
             while (!q.isEmpty() && now - q.peekFirst() > RATE_WINDOW_MS) q.pollFirst();
             if (q.size() >= RATE_LIMIT) {
-                throw fail(HttpStatus.TOO_MANY_REQUESTS, "Bé luyện nhiều quá rồi, nghỉ một chút rồi thử lại nhé", "RATE_LIMITED");
+                throw fail(HttpStatus.TOO_MANY_REQUESTS, "Bạn luyện nhiều quá rồi, nghỉ một chút rồi thử lại nhé", "RATE_LIMITED");
             }
             q.addLast(now);
         }

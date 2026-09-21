@@ -36,6 +36,21 @@ def test_speed_and_rest_padding_do_not_matter():
     assert dist(slow, fast) < 0.10
 
 
+def test_meta_marks_where_the_sign_starts_and_ends():
+    """meta phải chỉ đúng đoạn có tay giơ — tools/make_sign_steps.py cắt ảnh theo nó.
+
+    pad khung nghỉ ở hai đầu: nếu mốc lệch, ảnh minh hoạ của bước sẽ rơi vào lúc
+    người mẫu còn đang buông tay.
+    """
+    pad, n = 6, 30
+    c = F.build_clip(make_frames(arc, n=n, pad=pad), ASPECT)
+    dau, cuoi = c.meta["active_first"], c.meta["active_last"]
+    assert 0 <= dau < cuoi <= c.meta["input_frames"] - 1
+    # Cho xê dịch 1 khung mỗi đầu vì build_clip nới đoạn ra 1 khung cho chắc
+    assert abs(dau - pad) <= 1
+    assert abs(cuoi - (pad + n - 1)) <= 1
+
+
 def test_different_trajectory_is_far():
     assert dist(clip(arc), clip(circle)) > 0.12
     assert dist(clip(arc), clip(swipe_down)) > 0.12

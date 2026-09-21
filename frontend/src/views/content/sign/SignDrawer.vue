@@ -35,6 +35,12 @@
           </Upload>
         </div>
 
+        <p class="mb-4 text-xs text-gray-500">
+          Ảnh đại diện hiện ở thẻ từ vựng, flashcard, trò chơi và bài học. Video tải từ nguồn về
+          đã có sẵn ảnh; video tự tải lên thì phải đặt ảnh ở cột <b>Ảnh đại diện</b>, nếu không
+          những chỗ đó để trống.
+        </p>
+
         <Alert
           v-if="!videos.length"
           type="info"
@@ -74,16 +80,18 @@
             </template>
 
             <template v-if="column.key === 'thumbnail'">
-              <img
-                v-if="record.thumbnailUrl"
-                :src="record.thumbnailUrl"
+              <!-- Ảnh thiếu KHÔNG phải lỗi video, nhưng cũng không vô hại: thẻ từ vựng,
+                   flashcard, trò chơi và bài học đều lấy ảnh này. Video crawl về đã có
+                   sẵn ảnh; video tự tải lên thì phải đặt ảnh ở đây. -->
+              <ImageUploadCard
+                :value="record.thumbnailUrl"
                 :alt="`Ảnh đại diện video miền ${regionLabel(record.region)}`"
-                loading="lazy"
-                style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px"
+                text="Tải ảnh"
+                hint=""
+                confirm-text="Xoá ảnh đại diện của video này?"
+                :upload="(file: File) => handleThumbnailUpload(record, file)"
+                :remove="() => handleThumbnailRemove(record)"
               />
-              <!-- Ảnh thiếu KHÔNG phải lỗi video: nói rõ để biên tập viên khỏi
-                   tưởng video hỏng và đi tải lại cả video -->
-              <Tag v-else color="default">Chưa có ảnh</Tag>
             </template>
 
             <template v-if="column.key === 'isPrimary'">
@@ -141,31 +149,15 @@
             </template>
 
             <template v-if="column.key === 'image'">
-              <div class="flex flex-col items-start gap-1">
-                <img
-                  v-if="record.imageUrl"
-                  :src="record.imageUrl"
-                  :alt="`Ảnh bước ${record.stepOrder}`"
-                  style="width: 90px; height: 70px; object-fit: cover; border-radius: 4px"
-                />
-                <Tag v-else color="default">Chưa có ảnh</Tag>
-                <div class="flex gap-1">
-                  <Upload
-                    :before-upload="(file: File) => handleStepImageUpload(record, file)"
-                    :show-upload-list="false"
-                    accept="image/*"
-                  >
-                    <Button size="small">{{ record.imageUrl ? 'Đổi ảnh' : 'Tải ảnh' }}</Button>
-                  </Upload>
-                  <Popconfirm
-                    v-if="record.imageUrl"
-                    title="Xoá ảnh của bước này?"
-                    @confirm="handleDeleteStepImage(record)"
-                  >
-                    <Button size="small" danger>Xoá ảnh</Button>
-                  </Popconfirm>
-                </div>
-              </div>
+              <ImageUploadCard
+                :value="record.imageUrl"
+                :alt="`Ảnh bước ${record.stepOrder}`"
+                text="Tải ảnh"
+                hint=""
+                confirm-text="Xoá ảnh của bước này?"
+                :upload="(file: File) => handleStepImageUpload(record, file)"
+                :remove="() => handleDeleteStepImage(record)"
+              />
             </template>
 
             <template v-if="column.key === 'bodyFocus'">
@@ -281,6 +273,7 @@
     Upload,
   } from 'ant-design-vue';
   import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
+  import { ImageUploadCard } from '@/components/ImageUploadCard';
   import { BasicForm, useForm } from '@/components/Form';
   import { useModal } from '@/components/Modal';
   import { useMessage } from '@/hooks/web/useMessage';
@@ -303,6 +296,8 @@
     signVideoUploadApi,
     signVideoSetPrimaryApi,
     signVideoDeleteApi,
+    signVideoThumbnailUploadApi,
+    signVideoThumbnailDeleteApi,
     signStepListApi,
     signStepDeleteApi,
     signStepReorderApi,
@@ -556,12 +551,26 @@
   }
 
   async function handleStepImageUpload(record: Recordable<any>, file: File) {
-    if (!currentSign.value) return false;
+    if (!currentSign.value) return;
     await signStepImageUploadApi(currentSign.value.id, record.id, file);
     await refreshSteps();
     emit('success');
-    // Trả false để antd không tự tải lên — ta đã tự gọi API
-    return false;
+  }
+
+  async function handleThumbnailUpload(record: Recordable<any>, file: File) {
+    if (!currentSign.value) return;
+    await signVideoThumbnailUploadApi(currentSign.value.id, record.id, file);
+    await refreshVideos();
+    // Báo cho danh sách ngoài: ảnh đại diện của TỪ lấy từ video chính, đổi ảnh
+    // ở đây là cột ảnh ngoài bảng cũng phải đổi theo
+    emit('success');
+  }
+
+  async function handleThumbnailRemove(record: Recordable<any>) {
+    if (!currentSign.value) return;
+    await signVideoThumbnailDeleteApi(currentSign.value.id, record.id);
+    await refreshVideos();
+    emit('success');
   }
 
   async function handleDeleteStepImage(record: Recordable<any>) {

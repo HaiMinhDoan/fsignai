@@ -32,11 +32,11 @@ public class GuardianController {
     private final GuardianQueryRepository repo;
 
     private static final String[] DAY_LABELS = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
-    // Bỏ các ký tự dễ đọc nhầm (0/O, 1/I) — bé đọc mã cho bố mẹ nghe bằng miệng
+    // Bỏ các ký tự dễ đọc nhầm (0/O, 1/I) — người học đọc mã cho phụ huynh nghe bằng miệng
     private static final char[] CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray();
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    @Operation(summary = "Bé tạo mã để bố mẹ nhận",
+    @Operation(summary = "Người học tạo mã để phụ huynh nhận",
             description = "Mã sống 24 giờ. Tạo mã mới sẽ huỷ mã cũ.")
     @RequireAuth(roles = {RoleType.ALL})
     @PostMapping("/invite")
@@ -70,7 +70,7 @@ public class GuardianController {
         return ok(Map.of("childUserId", childId.toString()), "GUARDIAN_CLAIMED");
     }
 
-    @Operation(summary = "Danh sách bé đang theo dõi")
+    @Operation(summary = "Danh sách người học đang theo dõi")
     @RequireAuth(roles = {RoleType.ALL})
     @GetMapping("/children")
     public ResponseEntity<ResponseData<List<ChildSummaryResponse>>> children() {
@@ -95,16 +95,16 @@ public class GuardianController {
         return ok(list, "GUARDIAN_CHILDREN_SUCCESS");
     }
 
-    @Operation(summary = "Báo cáo học tập của một bé",
-            description = "Chỉ xem được bé đã liên kết; người khác nhận 404 như thể bé không tồn tại")
+    @Operation(summary = "Báo cáo học tập của một người học",
+            description = "Chỉ xem được người học đã liên kết; người khác nhận 404 như thể người học không tồn tại")
     @RequireAuth(roles = {RoleType.ALL})
     @GetMapping("/children/{childId}/report")
     public ResponseEntity<ResponseData<ChildReportResponse>> report(@PathVariable UUID childId) {
         UUID me = SecurityContextHolder.getAuthInfo().getId();
         if (!repo.canView(me, childId)) {
-            // Cùng thông điệp với "không tồn tại": không tiết lộ là có bé này
+            // Cùng thông điệp với "không tồn tại": không tiết lộ là có người học này
             // mà người hỏi không được xem
-            throw new NotFoundException("Không tìm thấy bé được liên kết");
+            throw new NotFoundException("Không tìm thấy người học được liên kết");
         }
 
         LocalDate today = LocalDate.now();
@@ -135,7 +135,7 @@ public class GuardianController {
                 .prevWeekMinutes(repo.minutesBetween(childId, prevMonday, prevMonday.plusDays(6)))
                 .masteredSigns(repo.masteredSigns(childId))
                 // null có chủ đích: service chấm điểm AI chưa dựng. Trả 0 sẽ
-                // bị đọc thành "bé làm sai hết", tệ hơn hẳn việc nói chưa có.
+                // bị đọc thành "người học làm sai hết", tệ hơn hẳn việc nói chưa có.
                 .aiAccuracyPercent(null)
                 .streakDays(repo.streakOf(childId))
                 .week(week)

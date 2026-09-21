@@ -9,9 +9,6 @@ Tất cả là **bản dựng node (node render) ở 2×** kích thước khung 
 
 | File | Khung thiết kế | Dùng ở |
 |---|---|---|
-| `mochi-hero.png` | 408×408 | Trang chủ — khung linh vật Mochi |
-| `mochi-widget.png` | 112×112 | Góc trò chơi — widget Mochi |
-| `mochi-dressing.png` | 96×96 | Góc trò chơi — Mochi thay đồ |
 | `home-camera-teaser.png` | 462×260 | Trang chủ — thẻ mời mở camera |
 | `video-card-1..3.png` | 389×219 | Trang chủ — 3 thẻ video cử chỉ |
 | `practice-teacher-pane.png` | 560×315 | Phòng luyện — khung mẫu bên trái |
@@ -23,7 +20,12 @@ Tất cả là **bản dựng node (node render) ở 2×** kích thước khung 
 | `guardian-avatar.png` | 48×48 | Bảng đồng hành — ảnh đại diện |
 | `clip-1..4.png` | 293×224 | Bảng đồng hành — 4 clip nổi bật |
 
-## Hai chỗ CỐ Ý không dùng ảnh Figma
+## Ba chỗ CỐ Ý không dùng ảnh Figma
+
+**Linh vật gấu Mochi đã bỏ** (`mochi-hero/widget/dressing.png`, xoá 2026-09-20). Người dùng
+chốt linh vật mới là **bàn tay làm ký hiệu “I love you”** — hợp mọi lứa tuổi hơn con gấu và
+nói đúng điều sản phẩm dạy. Ảnh mới nằm ở `src/assets/mascot/`, xem README ở đó.
+
 
 **`logo-signkids.png` đã bỏ.** Người dùng chốt giữ thương hiệu **SignAI**, mà logo trong
 Figma có sẵn chữ "SignKids" nung vào ảnh. Dùng logo tự dựng (icon bàn tay + chữ SignAI).

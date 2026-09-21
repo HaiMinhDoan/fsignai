@@ -51,5 +51,10 @@ public interface SignService extends BaseService<Sign, UUID> {
 
     SignVideoResponse setPrimaryVideo(UUID signId, UUID videoId);
 
+    /** Anh dai dien cua video. Anh cu (neu co) bi thay the - moi video chi giu dung mot anh. */
+    SignVideoResponse uploadThumbnail(UUID signId, UUID videoId, MultipartFile file);
+
+    void deleteThumbnail(UUID signId, UUID videoId);
+
     void deleteVideo(UUID signId, UUID videoId);
 }

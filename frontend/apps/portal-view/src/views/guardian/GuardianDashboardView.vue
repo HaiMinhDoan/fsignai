@@ -3,7 +3,7 @@
        Dựng theo Figma 1:2 "SignKids - Bảng Đồng Hành Ba Mẹ & Thầy Cô".
        =================================================================== -->
 
-  <!-- ===== 1. Banner + đổi bé ===== -->
+  <!-- ===== 1. Banner + đổi người học ===== -->
   <section class="banner">
     <span class="banner-dot banner-dot--peach" aria-hidden="true"></span>
     <span class="banner-dot banner-dot--sky" aria-hidden="true"></span>
@@ -38,7 +38,7 @@
           @click="nextChild"
         >
           <SiIcon name="repeat" :size="14" />
-          <span>Đổi bé</span>
+          <span>Đổi người học</span>
         </button>
       </div>
     </div>
@@ -47,7 +47,7 @@
   <!-- ===== Chưa đăng nhập / chưa liên kết ===== -->
   <section v-if="!auth.isLoggedIn()" class="panel empty-panel">
     <h2>Đăng nhập để xem báo cáo của con</h2>
-    <p>Bảng này chỉ hiện với tài khoản đã được liên kết với bé.</p>
+    <p>Bảng này chỉ hiện với tài khoản đã được liên kết với người học.</p>
     <RouterLink to="/dang-nhap" class="btn btn--amber">Đăng nhập</RouterLink>
   </section>
 
@@ -56,25 +56,25 @@
   </section>
 
   <section v-else-if="!children.length" class="panel link-panel">
-    <h2>Chưa liên kết với bé nào</h2>
+    <h2>Chưa liên kết với người học nào</h2>
     <p class="link-desc">
-      Bé mở trang này trên máy của bé, bấm <strong>Lấy mã của bé</strong> rồi đọc mã cho ba mẹ.
-      Ba mẹ nhập mã vào ô bên dưới là xong.
+      Người học mở trang này trên máy của mình, bấm <strong>Lấy mã của tôi</strong> rồi đọc mã cho
+      phụ huynh. Phụ huynh nhập mã vào ô bên dưới là xong.
     </p>
 
     <div class="link-grid">
       <div class="link-box">
-        <h3>Bé lấy mã</h3>
+        <h3>Người học lấy mã</h3>
         <button type="button" class="btn btn--sky" :disabled="inviting" @click="makeInvite">
           <SiIcon name="sparkles" :size="18" />
-          <span>{{ inviting ? 'Đang tạo…' : 'Lấy mã của bé' }}</span>
+          <span>{{ inviting ? 'Đang tạo…' : 'Lấy mã của tôi' }}</span>
         </button>
         <p v-if="inviteCode" class="invite-code">{{ inviteCode }}</p>
         <p v-if="inviteCode" class="invite-note">Mã dùng được trong 24 giờ.</p>
       </div>
 
       <form class="link-box" @submit.prevent="doClaim">
-        <h3>Ba mẹ nhập mã</h3>
+        <h3>Phụ huynh nhập mã</h3>
         <label class="si-visually-hidden" for="code">Mã liên kết</label>
         <input
           id="code"
@@ -109,13 +109,13 @@
       <article class="metric">
         <p class="metric-label">Ký hiệu thành thạo</p>
         <p class="metric-value"><strong>{{ report.masteredSigns }}</strong><small>từ vựng</small></p>
-        <p class="metric-note metric-note--muted">Đếm những từ bé đã ôn đúng ít nhất một lần</p>
+        <p class="metric-note metric-note--muted">Đếm những từ người học đã ôn đúng ít nhất một lần</p>
       </article>
 
       <article class="metric">
         <p class="metric-label">Độ chuẩn xác Camera AI</p>
         <!-- null chứ không phải 0: chưa dựng service chấm điểm. Hiện số 0 sẽ
-             bị đọc thành "bé làm sai hết" -->
+             bị đọc thành "người học làm sai hết" -->
         <p v-if="report.aiAccuracyPercent === null" class="metric-value metric-value--off">
           <strong>—</strong>
         </p>
@@ -135,7 +135,7 @@
         <p class="metric-note metric-note--muted">
           {{
             report.streakDays >= 7
-              ? 'Bé đã giữ chuỗi trọn một tuần!'
+              ? 'Người học đã giữ chuỗi trọn một tuần!'
               : `Còn ${7 - report.streakDays} ngày nữa là trọn tuần`
           }}
         </p>
@@ -179,7 +179,7 @@
         <header class="panel-head">
           <div>
             <p class="eyebrow">TỔNG QUAN TUẦN</p>
-            <h2>Bé Học Đều Không?</h2>
+            <h2>Học Có Đều Không?</h2>
           </div>
         </header>
 
@@ -206,7 +206,7 @@
       <header class="panel-head">
         <div>
           <p class="eyebrow">KHOẢNH KHẮC ĐÁNG NHỚ</p>
-          <h2>Bé Vừa Học Những Ký Hiệu Này</h2>
+          <h2>Những Ký Hiệu Vừa Học</h2>
         </div>
         <RouterLink to="/tu-dien" class="btn btn--white">
           <span>Mở thư viện</span>
@@ -215,7 +215,7 @@
       </header>
 
       <p v-if="!recent.length" class="muted">
-        Bé chưa học ký hiệu nào trong tuần này — cùng bé mở Phòng Luyện nhé.
+        Người học chưa học ký hiệu nào trong tuần này — cùng nhau mở Phòng Luyện nhé.
       </p>
       <div v-else class="clip-row">
         <RouterLink
@@ -261,7 +261,7 @@
         <header class="panel-head">
           <div>
             <p class="eyebrow">TRỢ NĂNG</p>
-            <h2>Cài Đặt Cho Bé</h2>
+            <h2>Cài Đặt Cho Người Học</h2>
           </div>
         </header>
         <ul class="a11y-list">
@@ -281,7 +281,7 @@
           </li>
         </ul>
         <p class="muted">
-          Đổi hai mục đầu ngay trên thanh trợ năng ở đầu trang; cài đặt theo bé trên máy này.
+          Đổi hai mục đầu ngay trên thanh trợ năng ở đầu trang; cài đặt theo người học trên máy này.
         </p>
       </aside>
     </section>
@@ -324,15 +324,15 @@
   const HOME_GAMES = [
     {
       title: 'Đố tay trước giờ ngủ',
-      desc: 'Ba mẹ làm một ký hiệu, bé đoán. Đổi vai sau mỗi lượt để bé được làm thầy.',
+      desc: 'Phụ huynh làm một ký hiệu, người học đoán. Đổi vai sau mỗi lượt để người học được làm thầy.',
     },
     {
       title: 'Gọi tên đồ vật trong phòng',
-      desc: 'Chỉ vào một đồ vật rồi cùng bé tra ký hiệu của nó trong Thư Viện Cử Chỉ.',
+      desc: 'Chỉ vào một đồ vật rồi cùng người học tra ký hiệu của nó trong Thư Viện Cử Chỉ.',
     },
     {
       title: 'Kể chuyện bằng ba ký hiệu',
-      desc: 'Chọn ba từ bé vừa học và cùng nghĩ ra một câu chuyện ngắn nối chúng lại.',
+      desc: 'Chọn ba từ người học vừa học và cùng nghĩ ra một câu chuyện ngắn nối chúng lại.',
     },
   ];
 
@@ -364,7 +364,7 @@
   const trendLabel = computed(() => {
     const r = report.value;
     if (!r) return '';
-    if (!r.prevWeekMinutes) return 'Tuần đầu tiên của bé';
+    if (!r.prevWeekMinutes) return 'Tuần đầu tiên của người học';
     const diff = Math.round(((r.weekMinutes - r.prevWeekMinutes) / r.prevWeekMinutes) * 100);
     if (diff === 0) return 'Bằng tuần trước';
     return diff > 0 ? `+${diff}% so với tuần trước` : `${diff}% so với tuần trước`;
@@ -443,7 +443,7 @@
       activeIndex.value = 0;
       if (children.value.length) {
         await loadReport();
-        // Vài ký hiệu gần đây để minh hoạ; kho chưa gắn lịch sử theo bé nên
+        // Vài ký hiệu gần đây để minh hoạ; kho chưa gắn lịch sử theo người học nên
         // lấy từ đầu danh sách thay vì bịa ra một "lịch sử" không có thật
         const page = await dictionarySearchApi({ page: 0, size: 4 });
         recent.value = page.items;

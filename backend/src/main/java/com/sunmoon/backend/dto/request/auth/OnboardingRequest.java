@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /**
  * 4 câu hỏi sau đăng ký. Mọi trường đều để trống được - cho phép lưu từng
- * câu một khi bé trả lời tới đâu lưu tới đó (đóng app giữa chừng không mất).
+ * câu một khi người học trả lời tới đâu lưu tới đó (đóng app giữa chừng không mất).
  * Chỉ khi complete=true mới bắt buộc đủ 4 câu và đóng dấu completed_at.
  */
 @NoArgsConstructor

@@ -21,7 +21,7 @@ public class GuardianQueryRepository {
 
     private final EntityManager em;
 
-    /** Danh sách bé mà người này đang theo dõi (chỉ liên kết đã xác nhận) */
+    /** Danh sách người học mà người này đang theo dõi (chỉ liên kết đã xác nhận) */
     @SuppressWarnings("unchecked")
     public List<Object[]> childrenOf(UUID guardianId) {
         return em.createNativeQuery("""
@@ -36,7 +36,7 @@ public class GuardianQueryRepository {
                 .getResultList();
     }
 
-    /** Người này có thực sự được phép xem bé kia không */
+    /** Người này có thực sự được phép xem người học kia không */
     public boolean canView(UUID guardianId, UUID childId) {
         Number n = (Number) em.createNativeQuery("""
                         SELECT count(*) FROM guardian_links
@@ -76,7 +76,7 @@ public class GuardianQueryRepository {
         return n.intValue();
     }
 
-    /** Số ký hiệu bé đã ôn đúng ít nhất một lần */
+    /** Số ký hiệu người học đã ôn đúng ít nhất một lần */
     public int masteredSigns(UUID childId) {
         Number n = (Number) em.createNativeQuery("""
                         SELECT count(*) FROM flashcard_reviews
@@ -103,7 +103,7 @@ public class GuardianQueryRepository {
     }
 
     /**
-     * Tạo (hoặc làm mới) mã mời của bé. Một bé chỉ giữ MỘT mã đang chờ; gọi
+     * Tạo (hoặc làm mới) mã mời của người học. Một người học chỉ giữ MỘT mã đang chờ; gọi
      * lại thì mã cũ bị thay, để mã đã đọc cho người lạ không dùng được nữa.
      */
     @Transactional
@@ -125,7 +125,7 @@ public class GuardianQueryRepository {
                 .executeUpdate();
     }
 
-    /** Tìm bé theo mã mời còn hạn; trả null nếu mã sai hoặc đã hết hạn */
+    /** Tìm người học theo mã mời còn hạn; trả null nếu mã sai hoặc đã hết hạn */
     public UUID childByInvite(String code) {
         List<?> r = em.createNativeQuery("""
                         SELECT child_user_id FROM guardian_links
@@ -136,7 +136,7 @@ public class GuardianQueryRepository {
         return r.isEmpty() ? null : (UUID) r.get(0);
     }
 
-    /** Nhận bé: xoá bản ghi chờ rồi tạo liên kết thật đã xác nhận */
+    /** Nhận người học: xoá bản ghi chờ rồi tạo liên kết thật đã xác nhận */
     @Transactional
     public void claim(UUID guardianId, UUID childId, String relationship) {
         em.createNativeQuery("DELETE FROM guardian_links WHERE child_user_id = :cid AND status = 'PENDING'")

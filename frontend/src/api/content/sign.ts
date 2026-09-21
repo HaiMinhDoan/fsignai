@@ -123,6 +123,31 @@ export const signVideoDeleteApi = (signId: string, videoId: string) =>
     { successMessageMode: 'message' },
   );
 
+/**
+ * Ảnh đại diện của video — hiện ở thẻ từ vựng, flashcard, trò chơi và bài học.
+ * Video crawl về đã có sẵn ảnh; video tự tải lên thì phải đặt ảnh ở đây, nếu không
+ * mọi chỗ kể trên đều để trống.
+ */
+export const signVideoThumbnailUploadApi = (signId: string, videoId: string, file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return defHttp.post<SignVideoModel>(
+    {
+      url: `${Api.BASE}/${signId}/videos/${videoId}/thumbnail`,
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 2 * 60 * 1000,
+    },
+    { successMessageMode: 'message' },
+  );
+};
+
+export const signVideoThumbnailDeleteApi = (signId: string, videoId: string) =>
+  defHttp.delete<void>(
+    { url: `${Api.BASE}/${signId}/videos/${videoId}/thumbnail` },
+    { successMessageMode: 'message' },
+  );
+
 // ==================== Hướng dẫn từng bước ====================
 
 export const signStepListApi = (signId: string) =>

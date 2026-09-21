@@ -6,7 +6,7 @@
         <span class="auth-brand-text">SignAI</span>
       </RouterLink>
 
-      <MascotWave :size="80" label="đang chào đón">Bé quay lại rồi!</MascotWave>
+      <MascotWave :size="80" label="đang chào đón">Bạn quay lại rồi!</MascotWave>
 
       <h1>Đăng nhập</h1>
       <p class="auth-subtitle">Học và luyện tập ngôn ngữ ký hiệu</p>

@@ -27,7 +27,7 @@
         />
       </template>
 
-      <p v-else-if="phase === 'saving'" class="msg">Đang tính sao cho bé…</p>
+      <p v-else-if="phase === 'saving'" class="msg">Đang tính sao cho bạn…</p>
 
       <div v-else-if="phase === 'result' && result" class="result">
         <p class="result-emoji">{{ result.score >= result.maxScore * 0.8 ? '🏆' : result.score > 0 ? '🌟' : '💪' }}</p>
@@ -38,7 +38,7 @@
         <p class="result-detail">
           Đúng {{ result.correctCount }} — Sai {{ result.wrongCount }} — {{ result.durationSeconds }} giây
         </p>
-        <p class="result-total">Tổng số sao của bé: <strong>{{ result.totalStars }} ⭐</strong></p>
+        <p class="result-total">Tổng số sao của bạn: <strong>{{ result.totalStars }} ⭐</strong></p>
         <div class="result-actions">
           <button type="button" class="btn btn--ghost" @click="close">Xong</button>
           <button type="button" class="btn" @click="load">Chơi lại</button>

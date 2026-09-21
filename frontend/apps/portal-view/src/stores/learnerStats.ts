@@ -30,7 +30,7 @@ export const useLearnerStatsStore = defineStore('learnerStats', () => {
       loaded.value = true;
     } catch {
       // Chưa đăng nhập hoặc API lỗi: giữ số 0. Thanh đầu trang vẫn hiện đủ ô
-      // để bé biết chỗ đó rồi sẽ có gì, thay vì mất hẳn.
+      // để người học biết chỗ đó rồi sẽ có gì, thay vì mất hẳn.
       stats.value = { ...EMPTY };
     }
   }

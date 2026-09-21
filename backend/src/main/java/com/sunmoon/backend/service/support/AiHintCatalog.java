@@ -6,7 +6,8 @@ import java.util.Map;
  * Mã gợi ý → lời khuyên tiếng Việt.
  *
  * DB lưu MÃ, không lưu câu: đổi cách diễn đạt (hoặc thêm ngôn ngữ) chỉ sửa ở đây, không phải deploy lại
- * ai-service và không phải sửa dữ liệu cũ. Giọng văn dành cho trẻ nhỏ: ngắn, ấm, nói cách sửa chứ không phán "sai".
+ * ai-service và không phải sửa dữ liệu cũ. Giọng văn xưng "bạn" — hợp cả trẻ nhỏ lẫn người lớn: ngắn, ấm,
+ * nói cách sửa chứ không phán "sai".
  */
 public final class AiHintCatalog {
 
@@ -30,8 +31,8 @@ public final class AiHintCatalog {
     public static final String TRACKING_LOW = "TRACKING_LOW";
 
     private static final Map<String, String> TEXT = Map.ofEntries(
-            Map.entry(HAND_MISSING, "Ký hiệu này dùng cả hai tay — bé giơ cả hai tay lên nhé."),
-            Map.entry(EXTRA_HAND, "Ký hiệu này chỉ dùng một tay — bé hạ tay còn lại xuống nhé."),
+            Map.entry(HAND_MISSING, "Ký hiệu này dùng cả hai tay — bạn giơ cả hai tay lên nhé."),
+            Map.entry(EXTRA_HAND, "Ký hiệu này chỉ dùng một tay — bạn hạ tay còn lại xuống nhé."),
             Map.entry(LOCATION_TOO_LOW, "Thử đưa tay lên cao hơn một chút."),
             Map.entry(LOCATION_TOO_HIGH, "Thử hạ tay xuống thấp hơn một chút."),
             Map.entry(MOVEMENT_TOO_SMALL, "Làm động tác rộng hơn một chút, giống video mẫu."),
@@ -42,7 +43,7 @@ public final class AiHintCatalog {
             Map.entry(LOCATION_OFF, "Vị trí đặt tay chưa giống video mẫu."),
             Map.entry(MOVEMENT_OK, "Chuyển động đúng nhịp."),
             Map.entry(MOVEMENT_OFF, "Chuyển động chưa giống mẫu — xem lại hướng và nhịp."),
-            Map.entry(TRACKING_LOW, "Camera thấy tay chưa rõ — bé thử ngồi chỗ sáng hơn và giơ tay giữa khung hình nhé."));
+            Map.entry(TRACKING_LOW, "Camera thấy tay chưa rõ — bạn thử ngồi chỗ sáng hơn và giơ tay giữa khung hình nhé."));
 
     /** Lời khuyên cho một mã; mã lạ (dữ liệu cũ, phiên bản khác) trả null để bỏ qua thay vì hiện mã thô */
     public static String textOf(String code) {
@@ -52,9 +53,9 @@ public final class AiHintCatalog {
     /** Lời nhắn khi ai-service không thấy được người/ký hiệu trong clip */
     public static String messageForError(String code) {
         return switch (code) {
-            case "NO_BODY" -> "Mình chưa thấy rõ hai vai của bé. Bé ngồi lùi ra một chút để camera thấy cả vai và hai tay nhé.";
-            case "NO_SIGN" -> "Mình chưa thấy bé giơ tay ký hiệu. Bé thử lại, giơ tay lên rõ ràng hơn nhé.";
-            case "NO_FRAMES" -> "Chưa ghi được hình nào. Bé kiểm tra camera rồi thử lại nhé.";
+            case "NO_BODY" -> "Mình chưa thấy rõ hai vai của bạn. Bạn ngồi lùi ra một chút để camera thấy cả vai và hai tay nhé.";
+            case "NO_SIGN" -> "Mình chưa thấy bạn giơ tay ký hiệu. Bạn thử lại, giơ tay lên rõ ràng hơn nhé.";
+            case "NO_FRAMES" -> "Chưa ghi được hình nào. Bạn kiểm tra camera rồi thử lại nhé.";
             default -> null;
         };
     }

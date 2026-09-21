@@ -135,12 +135,12 @@
         </div>
       </article>
 
-      <!-- --- Khung B: gương của bé --- -->
+      <!-- --- Khung B: gương của người học --- -->
       <article class="pane">
         <header class="pane-head">
           <h2 class="pane-title">
             <span class="pane-letter pane-letter--green">B</span>
-            <span>Gương Thần Của Bé</span>
+            <span>Gương Thần Của Bạn</span>
           </h2>
           <span class="pill" :class="mirrorOn ? 'pill--mint' : 'pill--grey'">
             <SiIcon name="camera" :size="14" />
@@ -186,7 +186,7 @@
             <img :src="mirrorPane" alt="Xem trước màn hình gương soi khi bật camera" />
             <button type="button" class="port-cta" @click="toggleMirror">
               <SiIcon name="camera" :size="20" />
-              <span>Bật gương của bé</span>
+              <span>Bật gương của bạn</span>
             </button>
           </template>
 
@@ -243,7 +243,7 @@
         <!-- Chưa soạn bước nào: giữ nguyên hình dáng 3 thẻ của Figma nhưng
              nói rõ là chưa có nội dung, KHÔNG mượn ảnh mẫu để giả vờ có.
              Vẫn bấm được để tính tiến độ + phát chậm mẫu — thiếu ảnh/mô tả
-             không có nghĩa là bé không luyện được bước đó. -->
+             không có nghĩa là người học không luyện được bước đó. -->
         <article
           v-for="n in (steps.length ? 0 : 3)"
           :key="`ph-${n}`"
@@ -296,7 +296,7 @@
       </RouterLink>
       <button v-else type="button" class="big-btn big-btn--amber" @click="cheer">
         <SiIcon name="sparkles" :size="22" />
-        <span>Bé làm được rồi! ⭐</span>
+        <span>Bạn làm được rồi! ⭐</span>
       </button>
     </section>
 
@@ -370,7 +370,7 @@
   const sampleVideo = ref<HTMLVideoElement>();
   const mirrorVideo = ref<HTMLVideoElement>();
   const mirrorOn = ref(false);
-  const flipped = ref(true); // mặc định lật: bé giơ tay phải phải thấy tay phải
+  const flipped = ref(true); // mặc định lật: người học giơ tay phải phải thấy tay phải
   const mirrorError = ref('');
   let mirrorStream: MediaStream | null = null;
 
@@ -391,7 +391,7 @@
     return i >= 0 ? switcher.value[i + 1] : undefined;
   });
 
-  /** Tiến độ = số bước bé đã chạm vào, trên tổng số bước của từ này */
+  /** Tiến độ = số bước người học đã chạm vào, trên tổng số bước của từ này */
   const totalSteps = computed(() => steps.value.length || 3);
   const doneSteps = computed(() => seenSteps.value.size);
   const questPercent = computed(() =>
@@ -401,7 +401,7 @@
   function pickStep(order: number) {
     activeStep.value = order;
     seenSteps.value = new Set(seenSteps.value).add(order);
-    // Chạm vào bước nào thì phát chậm lại mẫu để bé nhìn kỹ bước đó
+    // Chạm vào bước nào thì phát chậm lại mẫu để người học nhìn kỹ bước đó
     a11y.setRate(0.5);
     replay();
   }
@@ -430,9 +430,9 @@
       if (mirrorVideo.value) mirrorVideo.value.srcObject = mirrorStream;
       mirrorOn.value = true;
     } catch {
-      // Bé từ chối quyền, máy không có webcam, hoặc trang chạy trên http không
+      // Người học từ chối quyền, máy không có webcam, hoặc trang chạy trên http không
       // phải localhost — cả ba đều rơi vào đây
-      mirrorError.value = 'Chưa mở được camera. Bé hỏi người lớn cho phép dùng camera nhé.';
+      mirrorError.value = 'Chưa mở được camera. Bạn cho phép trình duyệt dùng camera nhé.';
       mirrorOn.value = false;
     }
   }
@@ -446,7 +446,7 @@
 
   /**
    * Chụp lại khung hình đang soi gương rồi tải về máy. Ảnh KHÔNG rời khỏi máy
-   * bé — không gửi lên máy chủ, vì đây là ảnh trẻ em.
+   * người học — không gửi lên máy chủ, vì đây là ảnh riêng tư.
    */
   function capture() {
     const v = mirrorVideo.value;
@@ -458,7 +458,7 @@
     if (!ctx) return;
     if (flipped.value) {
       ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1); // chụp đúng cái bé đang nhìn thấy trong gương
+      ctx.scale(-1, 1); // chụp đúng cái người học đang nhìn thấy trong gương
     }
     ctx.drawImage(v, 0, 0);
     canvas.toBlob((blob) => {
@@ -523,7 +523,7 @@
     }
   }
 
-  /** Vài từ cùng chủ đề để bé luyện liền mạch; kho chưa gán chủ đề thì lấy từ kề */
+  /** Vài từ cùng chủ đề để người học luyện liền mạch; kho chưa gán chủ đề thì lấy từ kề */
   async function loadSwitcher(current: SignSummary) {
     try {
       const near = await dictionarySearchApi({

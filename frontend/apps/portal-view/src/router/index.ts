@@ -128,7 +128,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/OnboardingView.vue'),
   },
   {
-    // Gõ sai đường dẫn thì về trang chủ, đừng để bé nhìn màn hình trắng
+    // Gõ sai đường dẫn thì về trang chủ, đừng để người học nhìn màn hình trắng
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },

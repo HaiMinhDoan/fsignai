@@ -159,7 +159,10 @@ def build_clip(frames: list, aspect: float) -> Clip:
     tracked = float(np.mean([shape_valid[raised[:, h], h].mean() if raised[:, h].any() else 1.0 for h in (0, 1)]))
     quality = float(np.clip(0.5 * good.mean() + 0.5 * tracked, 0, 1))
     return Clip(features=out, quality=quality, active_frames=int(active.sum()),
-                meta={"segment_frames": m, "input_frames": n})
+                meta={"segment_frames": m, "input_frames": n,
+                      # Vị trí đoạn ký hiệu thật trong clip — tools/make_sign_steps.py dùng
+                      # nó để cắt đúng khung hình minh hoạ, khỏi cắt trúng lúc tay còn buông
+                      "active_first": first, "active_last": last})
 
 
 # ---------------------------------------------------------------------------

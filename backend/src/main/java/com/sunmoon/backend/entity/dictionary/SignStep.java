@@ -11,7 +11,7 @@ import java.util.UUID;
 /**
  * Một bước trong hướng dẫn thực hiện ký hiệu.
  *
- * Khác signs.descriptionVi ở chỗ có THỨ TỰ: bé làm theo từng nhịp thay vì
+ * Khác signs.descriptionVi ở chỗ có THỨ TỰ: người học làm theo từng nhịp thay vì
  * đọc một khối chữ dài. Xem V11__sign_steps.sql.
  */
 @AllArgsConstructor

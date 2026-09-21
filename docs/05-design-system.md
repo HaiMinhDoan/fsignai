@@ -170,7 +170,7 @@ Hai dòng cuối cùng của bảng này là chỗ dễ làm sai nhất, và cũ
 
 ## 7. Lớp giao diện trẻ em (portal-view)
 
-Sáu mục ở trên viết cho **cả nhà**: bé học, bố mẹ kèm, ông bà tra cứu, quản trị viên soạn bài.
+Sáu mục ở trên viết cho **cả nhà**: người học (nhỏ và lớn), bố mẹ kèm, ông bà tra cứu, quản trị viên soạn bài.
 Mục này là **lớp phủ riêng cho web học tập** (`frontend/apps/portal-view`) — nơi người ngồi trước
 màn hình là **trẻ khiếm thính**. CMS quản trị **không** dùng lớp này.
 
@@ -183,7 +183,7 @@ màn hình là **trẻ khiếm thính**. CMS quản trị **không** dùng lớp
 | Pháo hoa khi làm đúng | Ăn mừng thật to | Không dùng màu làm kênh duy nhất | Pháo hoa **cộng thêm** vào dấu ✓ và chữ "Khớp với mẫu", không thay thế. |
 | Pastel nhạt | Càng dịu càng dễ thương | Tương phản ≥4.5:1 | Pastel chỉ làm **nền**. Chữ trên pastel luôn dùng `--si-text` (đạt >7:1 trên mọi pastel dưới đây). |
 
-Nguyên tắc rút gọn một câu: **màu vui ở xung quanh, màu trung tính ở nơi bé phải nhìn kỹ.**
+Nguyên tắc rút gọn một câu: **màu vui ở xung quanh, màu trung tính ở nơi người học phải nhìn kỹ.**
 
 ### 7.2 Bảng màu trẻ em
 
@@ -199,38 +199,41 @@ Toàn bộ là **màu nền**. Không màu nào trong nhóm này được dùng 
 | `--si-kid-cream` | `#FFF8EC` | Kem — nền trang |
 
 Mỗi chặng trên bản đồ hành trình nhận **một màu + một icon + một nhãn chữ**. Ba kênh, đúng §2.2:
-bé mù màu vẫn phân biệt được, bé chưa đọc thạo vẫn nhận ra hình.
+người mù màu vẫn phân biệt được, người chưa đọc thạo vẫn nhận ra hình.
 
 ### 7.3 Hình khối và chữ
 
 | | Người lớn (§3) | Trẻ em |
 |---|---|---|
 | Bo góc | `8px` / `14px` | `--si-kid-radius: 20px` / `--si-kid-radius-lg: 28px` |
-| Vùng bấm | 36px | **tối thiểu 48px** — tay bé chưa chính xác |
+| Vùng bấm | 36px | **tối thiểu 48px** — ngón tay nhỏ vẫn bấm trúng |
 | Cỡ chữ thân | 16px | **18px** |
 | Tiêu đề thẻ | 17px | **20px, 700** |
 | Đổ bóng | phẳng | `--si-kid-shadow` — bóng mềm, thấp, cho cảm giác vật thể bấm được |
 
 ### 7.4 Chuyển động
 
-Bé khiếm thính không nhận được phản hồi bằng âm thanh, nên **chuyển động thay tiếng động**:
+Người khiếm thính không nhận được phản hồi bằng âm thanh, nên **chuyển động thay tiếng động**:
 mọi hành động thành công phải có một chuyển động xác nhận.
 
 - Hover thẻ: nhấc `-4px`, 160ms
 - Bấm đúng: pháo hoa 900ms + dấu ✓ + chữ
 - Mở chặng mới trên bản đồ: ổ khoá bật, 500ms
-- **Bắt buộc tôn trọng `prefers-reduced-motion`** — có bé nhạy cảm tiền đình; khi bật, mọi
+- **Bắt buộc tôn trọng `prefers-reduced-motion`** — có người nhạy cảm tiền đình; khi bật, mọi
   hiệu ứng rút về đổi màu tức thì, riêng dấu ✓ và chữ thì giữ nguyên.
 
 ### 7.5 Linh vật
 
-Nhân vật dẫn chuyện tên **Bé Vẫy** — một bàn tay đang vẫy. Chọn bàn tay vì đó chính là
-"giọng nói" của ngôn ngữ ký hiệu; bé nhìn thấy bàn tay là hiểu ngay đây là nơi nói bằng tay.
+Nhân vật dẫn chuyện tên **Mochi** — một bàn tay đang làm ký hiệu "I love you" kèm khuôn
+mặt cười. Chọn bàn tay vì đó chính là "giọng nói" của ngôn ngữ ký hiệu: nhìn thấy bàn tay
+là hiểu ngay đây là nơi nói bằng tay.
 
-Hiện vẽ bằng **SVG nội tuyến** (`src/components/MascotWave.vue`) để không phụ thuộc file ảnh.
-Khi có bộ minh hoạ chính thức, thay ruột component đó — chỗ gọi không phải sửa.
+Từ 2026-09-20, linh vật là **ảnh đã tách nền** ở `src/assets/mascot/` (trước đó là SVG nội
+tuyến, và bản Figma dùng một **con gấu** — đã bỏ vì chỉ hợp trẻ nhỏ). Component
+`src/components/MascotWave.vue` vẫn là chỗ duy nhất để thay: đổi ảnh thì mọi chỗ gọi giữ
+nguyên. `object-fit` phải là `contain` — ảnh đã tách nền nên `cover` cắt cụt ngón tay.
 
-Bé Vẫy nói câu ngắn, **tối đa 12 chữ**, luôn kèm hành động cụ thể. Không nói chuyện phiếm.
+Mochi nói câu ngắn, **tối đa 12 chữ**, luôn kèm hành động cụ thể. Không nói chuyện phiếm.
 
 ---
 

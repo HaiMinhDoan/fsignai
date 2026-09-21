@@ -8,7 +8,7 @@
       </div>
 
       <template v-if="step === 1">
-        <h1>Vì sao bé muốn học ký hiệu?</h1>
+        <h1>Vì sao bạn muốn học ký hiệu?</h1>
         <div class="onboard-grid">
           <button
             v-for="opt in LEARN_REASON_OPTIONS"
@@ -25,7 +25,7 @@
       </template>
 
       <template v-else-if="step === 2">
-        <h1>Bé đã biết ký hiệu chưa?</h1>
+        <h1>Bạn đã biết ký hiệu chưa?</h1>
         <div class="onboard-grid">
           <button
             v-for="opt in CURRENT_LEVEL_OPTIONS"
@@ -42,7 +42,7 @@
       </template>
 
       <template v-else-if="step === 3">
-        <h1>Mỗi ngày bé muốn học bao lâu?</h1>
+        <h1>Mỗi ngày bạn muốn học bao lâu?</h1>
         <div class="onboard-grid">
           <button
             v-for="opt in DAILY_MINUTES_OPTIONS"
@@ -59,7 +59,7 @@
       </template>
 
       <template v-else>
-        <h1>Bé thích chủ đề nào?</h1>
+        <h1>Bạn thích chủ đề nào?</h1>
         <p class="auth-subtitle">Chọn ít nhất một chủ đề, chọn bao nhiêu cũng được</p>
         <p v-if="topicsLoading" class="hint">Đang tải danh sách chủ đề…</p>
         <div v-else class="onboard-chips">
@@ -109,7 +109,7 @@
   const LEARN_REASON_OPTIONS: { value: LearnReason; label: string; icon: string }[] = [
     { value: 'FAMILY', label: 'Có người thân khiếm thính', icon: 'user' },
     { value: 'FRIENDS', label: 'Có bạn bè khiếm thính', icon: 'sparkles' },
-    { value: 'PERSONAL', label: 'Bé thích ký hiệu', icon: 'star' },
+    { value: 'PERSONAL', label: 'Mình thích ký hiệu', icon: 'star' },
     { value: 'WORK', label: 'Học vì công việc', icon: 'book' },
     { value: 'BASIC_COMM', label: 'Giao tiếp cơ bản hằng ngày', icon: 'hand' },
     { value: 'OTHER', label: 'Lý do khác', icon: 'grid' },
@@ -192,7 +192,7 @@
     try {
       const [answers, topicList] = await Promise.all([getOnboardingApi(), topicOptionsApi()]);
       topics.value = topicList;
-      // Khôi phục đúng câu đã trả lời trước đó nếu bé đóng app giữa chừng
+      // Khôi phục đúng câu đã trả lời trước đó nếu người học đóng app giữa chừng
       learnReason.value = answers.learnReason ?? null;
       currentLevel.value = answers.currentLevel ?? null;
       dailyMinutes.value = answers.dailyMinutes ?? null;

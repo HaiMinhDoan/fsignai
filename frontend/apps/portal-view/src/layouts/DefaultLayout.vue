@@ -2,12 +2,12 @@
   <a class="skip-link" href="#main-content">Bỏ qua tới nội dung chính</a>
 
   <!-- ===== Thanh trợ năng (Figma: Top Accessibility Quick Toolbar) =====
-       Đặt TRÊN cùng, trên cả header: với bé cần phụ đề to hay video chậm thì
+       Đặt TRÊN cùng, trên cả header: với người cần phụ đề to hay video chậm thì
        đây là thứ phải chạm tới trước, không phải thứ đi tìm trong cài đặt. -->
   <div class="a11y-bar">
     <div class="a11y-inner">
       <div class="a11y-label">
-        <strong>Trợ Năng Dành Cho Bé:</strong>
+        <strong>Trợ Năng Cho Bạn:</strong>
         <span>Tối ưu thị giác &amp; tốc độ thao tác tay</span>
       </div>
 
@@ -105,8 +105,8 @@
       </div>
 
       <p class="footer-copy">
-        © 2025 SignAI — Bé Học Ngôn Ngữ Ký Hiệu. Thiết kế thân thiện cho trẻ em, phụ huynh và
-        thầy cô.
+        © 2025 SignAI — Học Ngôn Ngữ Ký Hiệu Việt Nam. Thiết kế thân thiện cho mọi lứa tuổi:
+        người học, phụ huynh và thầy cô.
       </p>
     </div>
   </footer>
@@ -148,9 +148,9 @@
       : [...BASE_NAV, { to: '/dien-dan', label: 'Diễn Đàn' }],
   );
 
-  // Tải số liệu ngay khi biết bé đã đăng nhập. Theo dõi trạng thái thay vì
+  // Tải số liệu ngay khi biết người học đã đăng nhập. Theo dõi trạng thái thay vì
   // gọi trong onMounted vì phiên đăng nhập được khôi phục BẤT ĐỒNG BỘ ở
-  // router guard — lúc layout dựng xong có thể vẫn chưa biết bé là ai.
+  // router guard — lúc layout dựng xong có thể vẫn chưa biết người học là ai.
   watch(
     () => auth.user?.userId,
     (id) => {

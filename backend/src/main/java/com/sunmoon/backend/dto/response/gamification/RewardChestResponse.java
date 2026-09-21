@@ -25,7 +25,7 @@ public class RewardChestResponse {
     /** Đã mở rồi hay chưa */
     Boolean opened;
     OffsetDateTime openedAt;
-    /** Đủ sao để mở chưa — khác "đã mở": đủ rồi nhưng bé chưa bấm mở */
+    /** Đủ sao để mở chưa — khác "đã mở": đủ rồi nhưng người học chưa bấm mở */
     Boolean unlockable;
     /** Còn thiếu bao nhiêu sao; 0 khi đã đủ */
     Integer pointsShort;

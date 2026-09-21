@@ -186,8 +186,24 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
     public void deleteSign(UUID id) {
         Sign entity = signRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Khong tim thay tu vung: " + id));
-        // sign_topics, sign_videos, sign_exemplars deu ON DELETE CASCADE o DB
+
+        // sign_topics, sign_videos, sign_steps, sign_exemplars, ai_check_results deu
+        // ON DELETE CASCADE o DB - nhung CSDL khong biet gi ve MinIO. Phai gom danh sach
+        // tep TRUOC khi xoa, vi xoa xong la mat duong lan toi chung, tep nam lai mai mai.
+        List<FileAttachment> files = fileRepository.findAllOwnedBySign(id);
+
         signRepository.delete(entity);
+        signRepository.flush();
+
+        for (FileAttachment f : files) {
+            try {
+                minioService.delete(f.getBucket(), f.getObjectKey());
+            } catch (Exception e) {
+                // Khong chan viec xoa: ghi log de don sau, giong deleteVideo()
+                log.warn("Khong xoa duoc object MinIO {}: {}", f.getObjectKey(), e.getMessage());
+            }
+        }
+        fileRepository.deleteAll(files);
     }
 
     @Override
@@ -541,7 +557,106 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
                 log.warn("Khong xoa duoc object MinIO {}: {}", file.getObjectKey(), e.getMessage());
             }
         }
+        // Anh dai dien di theo video: khong don thi no nam lai MinIO mai mai
+        FileAttachment thumb = video.getThumbnailFile();
+        deleteThumbnailObject(video);
+
+        // Xoa ban ghi video TRUOC roi moi xoa hai dong file_attachments: cot file_id va
+        // thumbnail_file_id la khoa ngoai, xoa nguoc thu tu se bi CSDL chan.
         signVideoRepository.delete(video);
+        signVideoRepository.flush();
+        if (file != null) {
+            fileRepository.delete(file);
+        }
+        deleteThumbnailRow(thumb);
+    }
+
+    @Override
+    @Transactional
+    public SignVideoResponse uploadThumbnail(UUID signId, UUID videoId, MultipartFile file) {
+        SignVideo video = requireVideoOf(signId, videoId);
+
+        if (file == null || file.isEmpty()) {
+            throw new CommonException("File anh rong");
+        }
+        // Chan ngay o server: form phia CMS co the bi qua mat, va mot file .mp4 doi ten
+        // thanh .png se lam moi the tu vung hien o trang hoc bi vo
+        String mime = file.getContentType();
+        if (mime == null || !mime.startsWith("image/")) {
+            throw new CommonException("Chi nhan tep anh (JPG, PNG, GIF, WEBP)");
+        }
+
+        // Moi video chi giu mot anh: don anh cu truoc khi gan anh moi
+        deleteThumbnailObject(video);
+
+        String objectName = "signs/" + video.getSign().getGloss() + "/thumbs/"
+                + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        try {
+            minioService.upload(file, objectName);
+        } catch (Exception e) {
+            throw new CommonException("Tai anh len MinIO that bai: " + e.getMessage(), e);
+        }
+
+        FileAttachment attachment = fileRepository.save(FileAttachment.builder()
+                .bucket(minioService.getBucketName())
+                .objectKey(objectName)
+                .originalName(file.getOriginalFilename())
+                .mimeType(mime)
+                .extension(extensionOf(file.getOriginalFilename()))
+                .sizeBytes(file.getSize())
+                .entityType(EntityType.SIGN_VIDEO)
+                .entityId(video.getId())
+                .build());
+
+        FileAttachment cu = video.getThumbnailFile();
+        video.setThumbnailFile(attachment);
+        signVideoRepository.saveAndFlush(video);
+        deleteThumbnailRow(cu);
+
+        return signVideoMapper.toResponse(video);
+    }
+
+    @Override
+    @Transactional
+    public void deleteThumbnail(UUID signId, UUID videoId) {
+        SignVideo video = requireVideoOf(signId, videoId);
+        FileAttachment cu = video.getThumbnailFile();
+        deleteThumbnailObject(video);
+        video.setThumbnailFile(null);
+        signVideoRepository.saveAndFlush(video);
+        deleteThumbnailRow(cu);
+    }
+
+    private SignVideo requireVideoOf(UUID signId, UUID videoId) {
+        SignVideo video = signVideoRepository.findById(videoId)
+                .orElseThrow(() -> new NotFoundException("Khong tim thay video: " + videoId));
+        if (!video.getSign().getId().equals(signId)) {
+            throw new ConflictException("Video khong thuoc tu vung nay");
+        }
+        return video;
+    }
+
+    /** Xoa object anh dai dien tren MinIO; loi MinIO khong chan thao tac chinh */
+    private void deleteThumbnailObject(SignVideo video) {
+        FileAttachment thumb = video.getThumbnailFile();
+        if (thumb == null) {
+            return;
+        }
+        try {
+            minioService.delete(thumb.getBucket(), thumb.getObjectKey());
+        } catch (Exception e) {
+            log.warn("Khong xoa duoc anh dai dien {}: {}", thumb.getObjectKey(), e.getMessage());
+        }
+    }
+
+    /**
+     * Xoa not dong file_attachments cua anh cu. Goi SAU khi sign_videos da tro sang
+     * anh khac va da flush, neu khong khoa ngoai thumbnail_file_id chan lai.
+     */
+    private void deleteThumbnailRow(FileAttachment cu) {
+        if (cu != null) {
+            fileRepository.delete(cu);
+        }
     }
 
     // ==================== private helper ====================

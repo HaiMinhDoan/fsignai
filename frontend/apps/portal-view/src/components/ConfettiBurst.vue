@@ -22,7 +22,7 @@
   /**
    * Pháo hoa ăn mừng.
    *
-   * Bé khiếm thính không nhận được tiếng vỗ tay hay tiếng "ting", nên phần
+   * Người khiếm thính không nhận được tiếng vỗ tay hay tiếng "ting", nên phần
    * thưởng phải nhìn thấy được (docs/05-design-system.md §7.4). Nhưng hiệu ứng
    * này luôn là PHẦN CỘNG THÊM: dấu ✓ và câu chữ khen mới là thứ mang thông
    * tin, pháo hoa tắt đi thì màn hình vẫn nói đủ ý (§2.2).
@@ -51,7 +51,7 @@
   let seq = 0;
   let clearTimer: number | undefined;
 
-  // Có bé nhạy cảm tiền đình — hệ điều hành bật giảm chuyển động thì không bắn
+  // Có người nhạy cảm tiền đình — hệ điều hành bật giảm chuyển động thì không bắn
   const reducedMotion = () =>
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;

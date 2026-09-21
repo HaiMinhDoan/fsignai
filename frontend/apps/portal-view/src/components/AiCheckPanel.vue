@@ -5,7 +5,7 @@
     <!-- Chưa bắt đầu -->
     <template v-if="phase === 'idle'">
       <p class="ai-note">
-        Mochi sẽ xem bé ký hiệu rồi cho điểm từng phần. Hình ảnh của bé
+        Mochi sẽ xem bạn ký hiệu rồi cho điểm từng phần. Hình ảnh của bạn
         <strong>không gửi đi đâu cả</strong> — chỉ toạ độ bàn tay được gửi để tính điểm.
       </p>
       <button type="button" class="ai-btn" @click="begin">
@@ -22,14 +22,14 @@
     <!-- Đếm ngược -->
     <div v-else-if="phase === 'countdown'" class="ai-count" role="status" aria-live="assertive">
       <span class="ai-count-num">{{ countdown }}</span>
-      <span>Bé giơ hai tay lên, chuẩn bị nhé!</span>
+      <span>Bạn giơ hai tay lên, chuẩn bị nhé!</span>
     </div>
 
     <!-- Đang ghi -->
     <div v-else-if="phase === 'recording'" class="ai-rec">
       <p class="ai-status ai-status--rec" role="status">
         <span class="rec-dot" aria-hidden="true"></span>
-        <span>Bé ký hiệu đi! {{ seeText }}</span>
+        <span>Bạn ký hiệu đi! {{ seeText }}</span>
       </p>
       <div class="ai-progress" aria-hidden="true">
         <span :style="{ width: `${Math.min(100, (status.elapsedMs / MAX_MS) * 100)}%` }"></span>
@@ -40,7 +40,7 @@
       </button>
     </div>
 
-    <p v-else-if="phase === 'sending'" class="ai-status" role="status">Mochi đang xem bé làm…</p>
+    <p v-else-if="phase === 'sending'" class="ai-status" role="status">Mochi đang xem bạn làm…</p>
 
     <!-- Kết quả -->
     <div v-else-if="phase === 'result' && result" class="ai-result">
@@ -72,7 +72,7 @@
           <button type="button" class="chip" @click="vote('AGREE')">👍 Đúng rồi</button>
           <button type="button" class="chip" @click="vote('DISAGREE')">👎 Chưa đúng</button>
         </template>
-        <span v-else class="vote-thanks" role="status">Cảm ơn bé đã nói cho Mochi biết nhé!</span>
+        <span v-else class="vote-thanks" role="status">Cảm ơn bạn đã nói cho Mochi biết nhé!</span>
       </div>
 
       <button type="button" class="ai-btn" @click="begin">
@@ -109,7 +109,7 @@
 
   type Phase = 'idle' | 'loading' | 'countdown' | 'recording' | 'sending' | 'result' | 'error';
 
-  /** Bé có tối đa chừng này để ký hiệu; ký xong sớm thì bấm "Xong rồi" */
+  /** Người học có tối đa chừng này để ký hiệu; ký xong sớm thì bấm "Xong rồi" */
   const MAX_MS = 7000;
   /** Dưới ngưỡng này gần như chắc chắn chưa ký hiệu xong hoặc camera không thấy tay */
   const MIN_FRAMES = 8;
@@ -125,9 +125,9 @@
   let countdownTimer: ReturnType<typeof setInterval> | undefined;
   let cancelled = false;
 
-  /** Cho bé biết máy có thấy mình không — bé biết phải chỉnh gì thay vì đoán */
+  /** Cho người học biết máy có thấy mình không — người học biết phải chỉnh gì thay vì đoán */
   const seeText = computed(() => {
-    if (!status.value.body) return 'Mình chưa thấy vai của bé.';
+    if (!status.value.body) return 'Mình chưa thấy vai của bạn.';
     if (status.value.hands === 0) return 'Mình chưa thấy tay.';
     return status.value.hands === 1 ? 'Mình thấy 1 tay.' : 'Mình thấy 2 tay.';
   });
@@ -165,20 +165,20 @@
     const camOk = await props.ensureCamera();
     if (cancelled) return;
     if (!camOk) {
-      return fail('Chưa mở được camera. Bé hỏi người lớn cho phép dùng camera nhé.');
+      return fail('Chưa mở được camera. Bạn cho phép trình duyệt dùng camera nhé.');
     }
 
     let models;
     try {
       models = await loadModels();
     } catch {
-      return fail('Chưa tải được bộ nhận diện. Bé kiểm tra mạng rồi thử lại nhé.');
+      return fail('Chưa tải được bộ nhận diện. Bạn kiểm tra mạng rồi thử lại nhé.');
     }
     if (cancelled) return;
 
     const video = await waitForVideo();
     if (!video) {
-      return fail('Camera chưa sẵn sàng. Bé thử lại nhé.');
+      return fail('Camera chưa sẵn sàng. Bạn thử lại nhé.');
     }
 
     countdown.value = 3;
@@ -221,7 +221,7 @@
     handle = null;
 
     if (clip.frames.length < MIN_FRAMES) {
-      return fail('Ghi được quá ít hình. Bé thử lại và ký hiệu lâu hơn một chút nhé.');
+      return fail('Ghi được quá ít hình. Bạn thử lại và ký hiệu lâu hơn một chút nhé.');
     }
     phase.value = 'sending';
     try {
@@ -229,7 +229,7 @@
       phase.value = 'result';
       emit('result', result.value);
     } catch (e) {
-      // Lỗi 422 mang sẵn lời khuyên tiếng Việt ("chưa thấy bé giơ tay…") — hiện nguyên văn
+      // Lỗi 422 mang sẵn lời khuyên tiếng Việt ("chưa thấy bạn giơ tay…") — hiện nguyên văn
       fail((e as Error).message);
     }
   }
@@ -240,7 +240,7 @@
     try {
       await aiFeedbackApi(result.value.resultId, verdict);
     } catch {
-      // Góp ý không lưu được cũng không làm phiền bé; kết quả chấm vẫn còn nguyên
+      // Góp ý không lưu được cũng không làm phiền người học; kết quả chấm vẫn còn nguyên
     }
   }
 

@@ -181,7 +181,7 @@
     background: #fbe9e7;
   }
 
-  /* Vũ Điệu Ngón Tay: ba thẻ chữ rơi từ trên xuống, bé chạm thẻ đúng trước khi chạm đáy */
+  /* Vũ Điệu Ngón Tay: ba thẻ chữ rơi từ trên xuống, người học chạm thẻ đúng trước khi chạm đáy */
   .stage--falling {
     position: relative;
     height: 420px;

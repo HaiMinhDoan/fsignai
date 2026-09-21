@@ -12,7 +12,7 @@
       <div class="hero-text">
         <p class="eyebrow-pill">
           <SiIcon name="sparkles" :size="16" />
-          <span>SÂN CHƠI CỦA BÉ</span>
+          <span>SÂN CHƠI CỦA BẠN</span>
         </p>
         <h1>Vừa Chơi Vừa Nhớ — Thu Thập Sao Siêu Cấp 🌟</h1>
         <p class="hero-sub">
@@ -22,7 +22,7 @@
 
       <div class="mochi-widget">
         <div class="mochi-frame">
-          <img :src="mochiWidget" alt="Gấu Mochi, linh vật của góc trò chơi" />
+          <img :src="mochiWidget" alt="Mochi, bàn tay linh vật của SignAI" />
           <span class="mochi-tag">Mochi</span>
         </div>
         <div class="mochi-info">
@@ -41,7 +41,7 @@
     <div class="section-head">
       <div>
         <p class="eyebrow">BỐN SÂN CHƠI</p>
-        <h2 id="games-heading">Chọn trò bé thích 🎲</h2>
+        <h2 id="games-heading">Chọn trò bạn thích 🎲</h2>
       </div>
       <span class="pill pill--peach">Cả 4 trò đều dùng kho {{ totalSigns || '—' }} từ có sẵn</span>
     </div>
@@ -98,11 +98,11 @@
       </header>
 
       <p v-if="!auth.isLoggedIn()" class="notice">
-        <RouterLink to="/dang-nhap">Đăng nhập</RouterLink> để xem bé đang đứng thứ mấy.
+        <RouterLink to="/dang-nhap">Đăng nhập</RouterLink> để xem bạn đang đứng thứ mấy.
       </p>
       <p v-else-if="boardLoading" class="notice">Đang xếp hạng…</p>
       <p v-else-if="!leaderboard.length" class="notice">
-        Chưa ai ghi điểm tuần này — bé chơi ván đầu là đứng đầu bảng ngay.
+        Chưa ai ghi điểm tuần này — bạn chơi ván đầu là đứng đầu bảng ngay.
       </p>
 
       <ol v-else class="rank-rows">
@@ -116,7 +116,7 @@
           <span class="rank-body">
             <strong class="rank-name">
               {{ row.fullName }}
-              <span v-if="row.isMe" class="rank-me">Bé đó!</span>
+              <span v-if="row.isMe" class="rank-me">Bạn đó!</span>
             </strong>
             <small>Đã chơi {{ row.gamesWon }} màn</small>
           </span>
@@ -126,7 +126,7 @@
 
       <p class="quote">
         <SiIcon name="sparkles" :size="20" />
-        <span>Mẹo nhỏ: chơi thêm một ván là sao của bé lại nhích lên một bậc.</span>
+        <span>Mẹo nhỏ: chơi thêm một ván là sao của bạn lại nhích lên một bậc.</span>
       </p>
     </article>
 
@@ -140,15 +140,15 @@
       </header>
 
       <div class="chest-top">
-        <img :src="mochiDressing" alt="Gấu Mochi trong bộ phụ kiện" class="chest-mochi" />
+        <img :src="mochiDressing" alt="Mochi cùng bộ phụ kiện" class="chest-mochi" />
         <div>
-          <p class="chest-now">Số sao bé tích luỹ: <strong>{{ stats.stars }} ⭐</strong></p>
+          <p class="chest-now">Số sao bạn tích luỹ: <strong>{{ stats.stars }} ⭐</strong></p>
           <p class="chest-sub">Mở rương để nhận phụ kiện cho Mochi</p>
         </div>
       </div>
 
       <p v-if="!auth.isLoggedIn()" class="notice">
-        <RouterLink to="/dang-nhap">Đăng nhập</RouterLink> để mở kho báu của riêng bé.
+        <RouterLink to="/dang-nhap">Đăng nhập</RouterLink> để mở kho báu của riêng bạn.
       </p>
       <p v-else-if="chestLoading" class="notice">Đang mở kho…</p>
 
@@ -203,8 +203,8 @@
   import { useLearnerStatsStore } from '@/stores/learnerStats';
   import SiIcon from '@/components/SiIcon.vue';
 
-  import mochiWidget from '@/assets/figma/mochi-widget.png';
-  import mochiDressing from '@/assets/figma/mochi-dressing.png';
+  import mochiWidget from '@/assets/mascot/mochi-hand-solo.png';
+  import mochiDressing from '@/assets/mascot/mochi-hand.png';
 
   defineOptions({ name: 'GameCornerView' });
 
@@ -224,7 +224,7 @@
       tag: 'Kéo Thả Trực Quan',
       reward: 50,
       name: 'Bàn Tay Vui Nhộn — Nối Hình & Ký Hiệu',
-      desc: 'Bé quan sát hình dáng các ngón tay và kéo dây nối đúng với bạn thú cưng thân quen.',
+      desc: 'Bạn quan sát hình dáng các ngón tay và kéo dây nối đúng với bạn thú cưng thân quen.',
       boardLeft: '👉 Bàn tay ký hiệu',
       boardRight: 'Hình con vật 👈',
       tokens: ['🐱', '🐶', '🐰', '✋', '🤟', '👌'],
@@ -237,7 +237,7 @@
       tag: 'Thử Thách 10 Giây',
       reward: 40,
       name: 'Thám Tử Ký Hiệu Bí Ẩn',
-      desc: 'Gấu Mochi đang làm ký hiệu gì thế nhỉ? Đồng hồ đếm ngược, bé quan sát thật nhanh nhé.',
+      desc: 'Mochi đang làm ký hiệu gì thế nhỉ? Đồng hồ đếm ngược, bạn quan sát thật nhanh nhé.',
       boardLeft: 'Thời gian: 10s',
       boardRight: 'Câu 1/5',
       tokens: ['👋', '❤️', '🙏'],
@@ -250,7 +250,7 @@
       tag: 'Nhịp Điệu & Khớp Tay',
       reward: 60,
       name: 'Vũ Điệu Ngón Tay',
-      desc: 'Bấm theo nhịp các thế tay rơi từ trên xuống, giúp khớp tay của bé dẻo dai hơn.',
+      desc: 'Bấm theo nhịp các thế tay rơi từ trên xuống, giúp khớp tay của bạn dẻo dai hơn.',
       boardLeft: 'Combo ×0',
       boardRight: 'Điểm: 0 🎵',
       tokens: ['✌️', '👍', '🤟', '👌'],
@@ -272,8 +272,8 @@
   ] as const;
 
   const LEVEL_TITLES = [
-    'Bé Mới Tập Ký Hiệu 🌱',
-    'Bạn Nhỏ Chăm Chỉ 🌟',
+    'Mới Tập Ký Hiệu 🌱',
+    'Bàn Tay Chăm Chỉ 🌟',
     'Nhà Thám Hiểm Ký Hiệu 🧭',
     'Bậc Thầy Ngón Tay ✋',
     'Siêu Sao Ký Hiệu 🏆',
@@ -329,7 +329,7 @@
 
   async function onGameClosed(changed: boolean) {
     playing.value = null;
-    // Chỉ tải lại khi bé thật sự chơi xong một ván — đóng ngang thì không có gì đổi
+    // Chỉ tải lại khi người học thật sự chơi xong một ván — đóng ngang thì không có gì đổi
     if (changed) await reloadBoards();
   }
 
@@ -501,7 +501,9 @@
   .mochi-frame img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    /* Ảnh đã tách nền: cover sẽ cắt cụt ngón tay, nên chừa lề cho bàn tay đứng gọn */
+    padding: 12px 12px 22px;
   }
   .mochi-tag {
     position: absolute;
@@ -802,7 +804,8 @@
     width: 72px;
     height: 72px;
     border-radius: 20px;
-    object-fit: cover;
+    object-fit: contain;
+    padding: 6px;
     background: var(--sk-peach);
     flex-shrink: 0;
   }

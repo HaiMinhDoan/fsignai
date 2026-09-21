@@ -118,7 +118,7 @@ export const wordPacksApi = () => apiGet<WordPack[]>('/word-packs');
 
 export const wordPackDetailApi = (id: string) => apiGet<WordPack>(`/word-packs/${id}`);
 
-/** Cần đăng nhập. Gọi khi bé mở một gói — an toàn gọi lại nhiều lần (idempotent) */
+/** Cần đăng nhập. Gọi khi người học mở một gói — an toàn gọi lại nhiều lần (idempotent) */
 export const wordPackStartApi = (id: string) => apiPost<WordPack>(`/word-packs/${id}/start`);
 
 /** Cần đăng nhập. Chỉ tăng, không lùi — học lại từ cũ không làm tụt tiến độ */

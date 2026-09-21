@@ -19,8 +19,8 @@
         <div class="hero-heading">
           <h1>Chào {{ displayName }}! 👋</h1>
           <p class="hero-sub">
-            Hôm nay đôi bàn tay bé nhỏ sẽ kể câu chuyện gì nào? Khám phá thêm những cử chỉ mới
-            cùng gấu Mochi nhé!
+            Hôm nay đôi bàn tay của bạn sẽ kể câu chuyện gì nào? Khám phá thêm những cử chỉ mới
+            cùng Mochi nhé!
           </p>
         </div>
 
@@ -53,12 +53,18 @@
         </div>
       </div>
 
-      <!-- "Mascot Mochi Showcase" (448×448 trắng r48, ảnh 408×408 r32) -->
+      <!-- "Mascot Mochi Showcase" (448×448 trắng r48) — linh vật đã tách nền
+           nên thả thẳng lên một quầng pastel, không còn khung ảnh chữ nhật -->
       <div class="mochi-showcase">
-        <img :src="mochiHero" alt="Gấu Mochi đang vẫy tay chào bé" class="mochi-img" />
+        <span class="mochi-glow" aria-hidden="true"></span>
+        <img
+          :src="mochiHero"
+          alt="Mochi — bàn tay làm ký hiệu “yêu thương” đang vẫy chào"
+          class="mochi-img"
+        />
         <span class="float-badge float-badge--green">
           <SiIcon name="check" :size="14" />
-          <span>Gấu Mochi Chào Bé!</span>
+          <span>Mochi Chào Bạn!</span>
         </span>
         <span class="float-badge float-badge--blue">
           <SiIcon name="hand" :size="14" />
@@ -173,10 +179,10 @@
         <span class="pill pill--sky">Chưa bật</span>
       </div>
       <p class="camera-desc">
-        Bé hãy giơ tay lên trước camera để vừa nhìn mẫu vừa nhìn tay mình nhé!
+        Bạn hãy giơ tay lên trước camera để vừa nhìn mẫu vừa nhìn tay mình nhé!
       </p>
       <div class="camera-shot">
-        <img :src="cameraTeaser" alt="Màn hình gương soi khi bé luyện ký hiệu trước camera" />
+        <img :src="cameraTeaser" alt="Màn hình gương soi khi bạn luyện ký hiệu trước camera" />
         <RouterLink to="/phong-luyen" class="camera-play" aria-label="Mở gương luyện tập">
           <SiIcon name="camera" :size="22" />
         </RouterLink>
@@ -254,7 +260,7 @@
         <p class="eyebrow">GÓC HOẠT HỌA TRỰC QUAN</p>
         <h2 id="gallery-heading">Học Ký Hiệu Qua Video 🎬</h2>
         <p class="section-sub">
-          Video bàn tay quay chính diện, kèm phụ đề chữ to rõ ràng giúp bé dễ dàng học theo.
+          Video bàn tay quay chính diện, kèm phụ đề chữ to rõ ràng giúp bạn dễ dàng học theo.
         </p>
       </div>
       <RouterLink to="/tu-dien" class="btn btn--white">
@@ -297,7 +303,7 @@
           </button>
 
           <!-- "Accessible Large Subtitle Banner": nền #263143, chữ 24/700.
-               Đây là phần trợ năng quan trọng nhất của thẻ — bé đọc được từ
+               Đây là phần trợ năng quan trọng nhất của thẻ — người học đọc được từ
                ngay cả khi chưa hiểu hình -->
           <p class="subtitle-banner">“{{ item.sign.wordVi.toUpperCase() }}”</p>
         </div>
@@ -313,7 +319,7 @@
 
           <h3 class="gcard-title">Ký hiệu: {{ item.sign.wordVi }}</h3>
           <p class="gcard-desc">
-            {{ item.sign.descriptionVi || 'Bé xem video và làm theo Mochi nhé.' }}
+            {{ item.sign.descriptionVi || 'Bạn xem video và làm theo Mochi nhé.' }}
           </p>
 
           <div class="gcard-actions">
@@ -339,8 +345,8 @@
     <div class="parent-left">
       <span class="parent-dot"><SiIcon name="user" :size="26" /></span>
       <div>
-        <h2>Góc Đồng Hành Cùng Con</h2>
-        <p>Xem báo cáo học tập, thời lượng và chuỗi ngày học của bé ở một chỗ.</p>
+        <h2>Góc Đồng Hành Cùng Người Học</h2>
+        <p>Xem báo cáo học tập, thời lượng và chuỗi ngày học của người học ở một chỗ.</p>
       </div>
     </div>
     <div class="parent-actions">
@@ -372,7 +378,7 @@
   import SiIcon from '@/components/SiIcon.vue';
 
   // Ảnh thiết kế lấy thẳng từ Figma — xem src/assets/figma/README.md
-  import mochiHero from '@/assets/figma/mochi-hero.png';
+  import mochiHero from '@/assets/mascot/mochi-hand.png';
   import cameraTeaser from '@/assets/figma/home-camera-teaser.png';
   import card1 from '@/assets/figma/video-card-1.png';
   import card2 from '@/assets/figma/video-card-2.png';
@@ -389,8 +395,8 @@
   const stats = computed(() => statsStore.stats);
 
   const LEVEL_TITLES = [
-    'Bé Mới Tập Ký Hiệu 🌱',
-    'Bạn Nhỏ Chăm Chỉ 🌟',
+    'Mới Tập Ký Hiệu 🌱',
+    'Bàn Tay Chăm Chỉ 🌟',
     'Nhà Thám Hiểm Ký Hiệu 🧭',
     'Bậc Thầy Ngón Tay ✋',
     'Siêu Sao Ký Hiệu 🏆',
@@ -404,7 +410,7 @@
   const levelLabel = (v: string) => LEVEL_LABELS[v] ?? v;
   const pick = (i: number) => LEVEL_TITLES[Math.min(i, LEVEL_TITLES.length - 1)]!;
 
-  const displayName = computed(() => auth.user?.realName || 'bé');
+  const displayName = computed(() => auth.user?.realName || 'bạn');
   const levelTitle = computed(() => pick(stats.value.level - 1));
   const nextLevelTitle = computed(() => pick(stats.value.level));
 
@@ -497,7 +503,7 @@
       playingCard.value = null;
       return;
     }
-    // Chỉ một thẻ chạy một lúc — ba video cùng nhảy sẽ làm bé hoa mắt
+    // Chỉ một thẻ chạy một lúc — ba video cùng nhảy sẽ làm người học hoa mắt
     cardVideos.value.forEach((other) => other?.pause());
     v.playbackRate = a11y.playbackRate;
     void v.play();
@@ -810,7 +816,7 @@
     overflow: hidden;
   }
 
-  /* Khung linh vật 448×448 trắng r48, ảnh 408×408 r32 */
+  /* Khung linh vật 448×448 trắng r48; bên trong là quầng pastel + bàn tay Mochi */
   .mochi-showcase {
     position: relative;
     aspect-ratio: 1 / 1;
@@ -824,11 +830,52 @@
     place-items: center;
     padding: 20px;
   }
+  /* Quầng sáng mờ sau bàn tay: nền khung vốn trắng, thiếu quầng thì linh vật
+     trông như bị dán lên. Bo tròn + blur nên không tạo mép cứng nào. */
+  .mochi-glow {
+    position: absolute;
+    inset: 12%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 26%, var(--sk-peach), var(--sk-sky) 70%);
+    filter: blur(14px);
+    opacity: 0.7;
+    animation: mochi-glow 4.2s ease-in-out infinite;
+  }
   .mochi-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: var(--sk-r-card);
+    position: relative;
+    width: 88%;
+    height: 88%;
+    object-fit: contain;
+    /* Vẫy quanh cổ tay = mép dưới của ảnh */
+    transform-origin: 50% 92%;
+    animation: mochi-wave 3.4s ease-in-out infinite;
+  }
+  @keyframes mochi-wave {
+    0%,
+    62%,
+    100% {
+      transform: rotate(0deg);
+    }
+    72% {
+      transform: rotate(-9deg);
+    }
+    82% {
+      transform: rotate(7deg);
+    }
+    91% {
+      transform: rotate(-4deg);
+    }
+  }
+  @keyframes mochi-glow {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.07);
+      opacity: 0.85;
+    }
   }
   .float-badge {
     position: absolute;

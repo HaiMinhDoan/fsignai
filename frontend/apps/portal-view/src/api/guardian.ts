@@ -33,7 +33,7 @@ export const childrenApi = () => apiGet<ChildSummary[]>('/guardian/children');
 export const childReportApi = (childId: string) =>
   apiGet<ChildReport>(`/guardian/children/${childId}/report`);
 
-/** Bé bấm để lấy mã, đọc cho bố mẹ nhập. Mã sống 24 giờ. */
+/** Người học bấm để lấy mã, đọc cho phụ huynh nhập. Mã sống 24 giờ. */
 export const createInviteApi = () => apiPost<{ inviteCode: string }>('/guardian/invite');
 
 export const claimChildApi = (inviteCode: string, relationship = 'PARENT') =>

@@ -47,7 +47,7 @@
   --sk-r-pill: 9999px; /* dùng nhiều nhất trong Figma */
   --sk-r-card: 32px;
   --sk-r-block: 48px;
-  --sk-tap: 48px; /* vùng bấm tối thiểu cho tay bé */
+  --sk-tap: 48px; /* vùng bấm tối thiểu cho mọi cỡ ngón tay */
 
   --sk-shadow: 0 2px 8px rgba(17, 28, 45, 0.06);
   --sk-shadow-card: 0 4px 16px rgba(17, 28, 45, 0.08);
@@ -60,7 +60,7 @@
 
   /* ===== Khung video: CỐ Ý không màu =====
      Quy tắc §2.1 vẫn giữ nguyên qua lần đổi thiết kế này. Figma phủ pastel
-     khắp trang nhưng mắt bé vẫn phải đọc được hình bàn tay, nên bên trong
+     khắp trang nhưng mắt người học vẫn phải đọc được hình bàn tay, nên bên trong
      khung video chỉ có xám trung tính. */
   --sk-stage: #eaf0f4;
   --sk-stage-border: #d3e0e7;
@@ -224,7 +224,7 @@ video {
   white-space: nowrap;
 }
 
-/* Viền focus dày dùng chung — bé điều hướng bằng Tab phải thấy rõ mình ở đâu */
+/* Viền focus dày dùng chung — người học điều hướng bằng Tab phải thấy rõ mình ở đâu */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -236,7 +236,7 @@ select:focus-visible,
 }
 
 /**
- * Có bé nhạy cảm tiền đình. Khi hệ điều hành bật giảm chuyển động, mọi hiệu
+ * Có người nhạy cảm tiền đình. Khi hệ điều hành bật giảm chuyển động, mọi hiệu
  * ứng rút về đổi màu tức thì. Dấu ✓ và chữ xác nhận không bị ảnh hưởng vì
  * chúng không phải animation.
  */

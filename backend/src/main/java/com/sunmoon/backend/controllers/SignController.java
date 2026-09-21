@@ -152,6 +152,27 @@ public class SignController {
         return ok(signService.setPrimaryVideo(id, videoId), "SIGN_VIDEO_PRIMARY_SET");
     }
 
+    @Operation(summary = "Tải ảnh đại diện cho một video",
+            description = "Ảnh cũ (nếu có) bị thay thế — mỗi video chỉ giữ đúng một ảnh. "
+                    + "Ảnh này hiện ở thẻ từ vựng, flashcard, trò chơi và bài học, nên video "
+                    + "tự tải lên mà thiếu ảnh sẽ để trống ở tất cả những chỗ đó.")
+    @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
+    @PostMapping(value = "/{id}/videos/{videoId}/thumbnail", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseData<SignVideoResponse>> uploadThumbnail(
+            @PathVariable UUID id, @PathVariable UUID videoId,
+            @RequestPart("file") MultipartFile file) {
+        return ok(signService.uploadThumbnail(id, videoId, file), "SIGN_VIDEO_THUMBNAIL_UPLOADED");
+    }
+
+    @Operation(summary = "Xoá ảnh đại diện của một video")
+    @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
+    @DeleteMapping("/{id}/videos/{videoId}/thumbnail")
+    public ResponseEntity<ResponseData<Void>> deleteThumbnail(
+            @PathVariable UUID id, @PathVariable UUID videoId) {
+        signService.deleteThumbnail(id, videoId);
+        return ok(null, "SIGN_VIDEO_THUMBNAIL_DELETED");
+    }
+
     @Operation(summary = "Xoá video ký hiệu")
     @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
     @DeleteMapping("/{id}/videos/{videoId}")

@@ -55,7 +55,7 @@
         <ConfettiBurst :fire="1" />
         <SiIcon name="trophy" :size="56" />
       </div>
-      <h2>Xong rồi! Bé giỏi quá! 🎉</h2>
+      <h2>Xong rồi! Bạn giỏi quá! 🎉</h2>
       <p class="stars-row">
         <SiIcon
           v-for="n in 3"
@@ -112,7 +112,7 @@
         </button>
         <button type="button" class="btn btn--amber" :disabled="saving" @click="markDone">
           <SiIcon name="check" :size="20" />
-          <span>Bé thuộc từ này rồi!</span>
+          <span>Bạn thuộc từ này rồi!</span>
         </button>
       </div>
     </section>
@@ -181,7 +181,7 @@
   }
   watch(currentIndex, loadCurrentVideo);
 
-  /** Tốc độ lấy từ thanh trợ năng — bé chỉnh một lần, mọi video nghe theo */
+  /** Tốc độ lấy từ thanh trợ năng — người học chỉnh một lần, mọi video nghe theo */
   function applyRate() {
     if (videoEl.value) videoEl.value.playbackRate = a11y.playbackRate;
   }
@@ -218,7 +218,7 @@
     try {
       let detail = await wordPackDetailApi(props.id);
 
-      // Đã đăng nhập và gói đang mở thì tự bắt đầu — bé không phải bấm thêm
+      // Đã đăng nhập và gói đang mở thì tự bắt đầu — người học không phải bấm thêm
       // một nút "Bắt đầu" thừa. Gọi start() an toàn dù đã bắt đầu từ trước
       // (idempotent ở backend).
       if (auth.isLoggedIn() && detail.unlocked !== false) {

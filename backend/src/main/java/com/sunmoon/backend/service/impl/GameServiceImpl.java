@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
  * Bốn trò chạy hoàn toàn trên kho từ sẵn có. Máy chủ chỉ rút nội dung và chốt
  * điểm; luật chơi (kéo thả, đồng hồ, lật thẻ...) nằm ở giao diện.
  *
- * Vì bé chơi ở trình duyệt nên kết quả gửi lên KHÔNG kiểm chứng tuyệt đối được.
+ * Vì người học chơi ở trình duyệt nên kết quả gửi lên KHÔNG kiểm chứng tuyệt đối được.
  * Bù lại bằng ba chốt chặn rẻ tiền: ván phải do máy chủ mở, chỉ chốt được một
  * lần, và thời lượng lấy từ đồng hồ máy chủ (không tin số client gửi) — số câu
  * đúng bị chặn theo tốc độ tối thiểu hợp lý của một đứa trẻ.
@@ -64,7 +64,7 @@ public class GameServiceImpl implements GameService {
     private static final int SPEED_ROUNDS = 5;
     private static final int DANCE_ROUNDS = 10;
 
-    /** Nhanh nhất mà một bé thật sự làm đúng được một vòng: dưới mức này là gửi số bừa */
+    /** Nhanh nhất mà một người học thật sự làm đúng được một vòng: dưới mức này là gửi số bừa */
     private static final double MIN_SECONDS_PER_CORRECT = 1.5;
 
     private final GameSessionRepository gameSessionRepository;
@@ -233,7 +233,7 @@ public class GameServiceImpl implements GameService {
 
     private GameQuestion buildQuestion(Sign correct, int optionCount, Set<UUID> used) {
         // Chữ nhiễu phải khác chữ đáp án — hai từ khác nhau vẫn có thể trùng wordVi
-        // (biến thể vùng miền), khi đó bé không có cách nào phân biệt hai lựa chọn
+        // (biến thể vùng miền), khi đó người học không có cách nào phân biệt hai lựa chọn
         Set<String> labels = new HashSet<>();
         labels.add(normalize(correct.getWordVi()));
 

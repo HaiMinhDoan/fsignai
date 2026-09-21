@@ -161,7 +161,7 @@ public class WordPackServiceImpl extends BaseServiceImpl<WordPack, UUID> impleme
         List<WordPack> packs = wordPackRepository.findAllById(ids);
 
         if (published) {
-            // Không cho xuất bản gói rỗng: bé bấm vào sẽ thấy đảo không có gì
+            // Không cho xuất bản gói rỗng: người học bấm vào sẽ thấy đảo không có gì
             List<String> empty = packs.stream()
                     .filter(p -> wordPackItemRepository.countByPackId(p.getId()) == 0)
                     .map(WordPack::getTitleVi)

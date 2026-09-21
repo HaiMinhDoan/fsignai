@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class ClaimChildRequest {
 
-    /** Mã bé đọc cho bố mẹ nhập */
+    /** Mã người học đọc cho bố mẹ nhập */
     @NotBlank(message = "Cần nhập mã liên kết")
     private String inviteCode;
 

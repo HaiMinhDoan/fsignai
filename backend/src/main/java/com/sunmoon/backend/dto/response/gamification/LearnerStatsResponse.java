@@ -7,7 +7,7 @@ import lombok.experimental.FieldDefaults;
  * Số liệu hiện lên thanh đầu trang của web học tập: chuỗi ngày, sao, cấp độ.
  *
  * Gộp ba thứ vào MỘT lần gọi vì chúng luôn hiện cùng nhau ở header — tách
- * thành ba API thì mỗi lần chuyển trang bé phải chờ ba vòng mạng.
+ * thành ba API thì mỗi lần chuyển trang người học phải chờ ba vòng mạng.
  */
 @NoArgsConstructor
 @AllArgsConstructor

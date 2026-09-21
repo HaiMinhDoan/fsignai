@@ -1,41 +1,16 @@
 <template>
   <div class="mascot" :class="`mascot--${layout}`">
-    <svg
+    <span
       class="mascot-art"
-      :width="size"
-      :height="size * 1.16"
-      viewBox="0 0 120 140"
+      :style="{ width: `${size}px`, height: `${size}px` }"
       role="img"
-      :aria-label="`Bé Vẫy, linh vật của SignAI${label ? ': ' + label : ''}`"
+      :aria-label="`Mochi, bàn tay linh vật của SignAI${label ? ': ' + label : ''}`"
     >
-      <!-- Bé Vẫy là một bàn tay đang vẫy: bàn tay chính là "giọng nói" của
-           ngôn ngữ ký hiệu, bé nhìn thấy là hiểu ngay đây là nơi nói bằng tay
-           (docs/05-design-system.md §7.5) -->
-      <g class="mascot-body">
-        <!-- bốn ngón -->
-        <rect x="34" y="26" width="13" height="42" rx="6.5" class="skin" />
-        <rect x="49" y="18" width="13" height="50" rx="6.5" class="skin" />
-        <rect x="64" y="22" width="13" height="46" rx="6.5" class="skin" />
-        <rect x="79" y="32" width="13" height="36" rx="6.5" class="skin" />
-        <!-- ngón cái -->
-        <rect
-          x="16"
-          y="60"
-          width="13"
-          height="30"
-          rx="6.5"
-          class="skin"
-          transform="rotate(28 22.5 75)"
-        />
-        <!-- lòng bàn tay + khuôn mặt -->
-        <rect x="30" y="58" width="66" height="62" rx="26" class="skin" />
-        <circle cx="50" cy="86" r="5" class="eye" />
-        <circle cx="76" cy="86" r="5" class="eye" />
-        <circle cx="41" cy="99" r="6" class="blush" />
-        <circle cx="85" cy="99" r="6" class="blush" />
-        <path d="M52 100q11 10 22 0" class="smile" />
-      </g>
-    </svg>
+      <!-- Quầng sáng pastel nằm dưới bàn tay: nền trang chỗ nào cũng sáng,
+           thiếu quầng này linh vật trông như bị dán lên. -->
+      <span class="mascot-halo" aria-hidden="true"></span>
+      <img :src="mascotHand" alt="" class="mascot-img" />
+    </span>
 
     <p v-if="$slots.default" class="bubble"><slot /></p>
   </div>
@@ -43,12 +18,16 @@
 
 <script lang="ts" setup>
   /**
-   * Linh vật dẫn chuyện. Vẽ bằng SVG nội tuyến để web học tập không phụ thuộc
-   * file ảnh nào — khi có bộ minh hoạ chính thức thì thay ruột component này,
-   * mọi chỗ gọi giữ nguyên.
+   * Linh vật dẫn chuyện: bàn tay Mochi đang làm ký hiệu “I love you”.
+   *
+   * Bàn tay chính là "giọng nói" của ngôn ngữ ký hiệu — nhìn là hiểu ngay đây
+   * là nơi nói bằng tay (docs/05-design-system.md §7.5). Ảnh đã tách nền sẵn
+   * nên đặt được lên mọi nền màu; đổi ảnh thì mọi chỗ gọi giữ nguyên.
    *
    * Câu thoại tối đa ~12 chữ và luôn kèm một hành động cụ thể (§7.5).
    */
+  import mascotHand from '@/assets/mascot/mochi-hand-solo.png';
+
   withDefaults(
     defineProps<{
       size?: number;
@@ -75,35 +54,33 @@
   }
 
   .mascot-art {
+    position: relative;
     flex-shrink: 0;
-    overflow: visible;
+    display: grid;
+    place-items: center;
   }
 
-  .skin {
-    fill: var(--si-kid-sun);
-    stroke: var(--si-kid-sun-deep);
-    stroke-width: 2.5;
-  }
-  .eye {
-    fill: var(--si-text);
-  }
-  .blush {
-    fill: var(--si-kid-peach);
-    opacity: 0.85;
-  }
-  .smile {
-    fill: none;
-    stroke: var(--si-text);
-    stroke-width: 3;
-    stroke-linecap: round;
+  .mascot-halo {
+    position: absolute;
+    inset: 4%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, var(--sk-peach), var(--sk-sky) 72%);
+    opacity: 0.55;
+    animation: halo-pulse 3.6s ease-in-out infinite;
   }
 
-  /* Vẫy tay quanh cổ tay. Bé khiếm thính không nghe được lời chào, nên lời
-     chào phải là một chuyển động (§7.4) */
-  .mascot-body {
-    transform-origin: 63px 120px;
+  .mascot-img {
+    position: relative;
+    width: 82%;
+    height: 82%;
+    object-fit: contain;
+    /* Vẫy quanh cổ tay, tức là quanh mép dưới của ảnh */
+    transform-origin: 50% 92%;
     animation: wave 2.4s ease-in-out infinite;
   }
+
+  /* Bàn tay vẫy chào. Người khiếm thính không nghe được lời chào, nên lời
+     chào phải là một chuyển động (§7.4) */
   @keyframes wave {
     0%,
     60%,
@@ -118,6 +95,18 @@
     }
     90% {
       transform: rotate(-6deg);
+    }
+  }
+
+  @keyframes halo-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 0.72;
     }
   }
 

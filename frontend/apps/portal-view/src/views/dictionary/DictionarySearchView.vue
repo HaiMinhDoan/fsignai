@@ -21,7 +21,7 @@
         v-model="keyword"
         type="search"
         autocomplete="off"
-        placeholder="Bé muốn tìm từ gì?"
+        placeholder="Bạn muốn tìm từ gì?"
         @input="onKeywordInput"
       />
       <button v-if="keyword" type="button" class="search-clear" @click="clearKeyword">
@@ -29,7 +29,7 @@
       </button>
     </div>
 
-    <!-- Bộ lọc là các nút tròn bấm được, không phải thẻ select: tay bé chưa
+    <!-- Bộ lọc là các nút tròn bấm được, không phải thẻ select: tay người học chưa
          chính xác và trẻ chưa đọc thạo khó thao tác với danh sách xổ xuống -->
     <div class="chip-row" role="group" aria-label="Lọc theo cấp độ">
       <button
@@ -114,7 +114,7 @@
       :to="{ name: 'dictionary-detail', params: { id: sign.id } }"
       class="card"
     >
-      <!-- Khung ảnh trung tính, không viền màu, không gradient: bé phải đọc
+      <!-- Khung ảnh trung tính, không viền màu, không gradient: người học phải đọc
            được hình bàn tay (docs/05-design-system.md §2.1) -->
       <div class="card-frame">
         <img
@@ -217,7 +217,7 @@
    *
    * Kho nhập từ qipedc chưa gán chủ đề và chưa phân cấp độ, nên hôm nay hàng
    * chip chủ đề sẽ ẩn hẳn và chỉ còn một cấp độ. Bày đủ 4 cấp độ + 12 chủ đề mà
-   * bấm cái nào cũng ra "không tìm thấy từ nào" thì bé sẽ nghĩ là máy hỏng.
+   * bấm cái nào cũng ra "không tìm thấy từ nào" thì người học sẽ nghĩ là máy hỏng.
    * Gán chủ đề / phân cấp độ xong là các chip tự hiện ra, không phải sửa code.
    */
   const visibleLevels = computed(() =>
@@ -246,7 +246,7 @@
     reload();
   }
 
-  /** Chủ đề nằm trên URL để bé chia sẻ được đường dẫn và nút Back hoạt động đúng */
+  /** Chủ đề nằm trên URL để người học chia sẻ được đường dẫn và nút Back hoạt động đúng */
   function pickTopic(id: string) {
     topicId.value = id;
     router.replace({ path: '/tu-dien', query: id ? { topicId: id } : {} });
