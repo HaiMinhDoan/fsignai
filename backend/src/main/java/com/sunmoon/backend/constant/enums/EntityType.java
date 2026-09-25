@@ -29,6 +29,7 @@ public interface EntityType {
     String USER        = "users";
 
     // Module: Diễn đàn và blog
+    String MEDIA_ASSET   = "media_assets";
     String FORUM_POST    = "forum_posts";
     String FORUM_COMMENT = "forum_comments";
     String BLOG_POST     = "blog_posts";

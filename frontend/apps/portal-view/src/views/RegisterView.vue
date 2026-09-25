@@ -2,7 +2,7 @@
   <div class="auth-page">
     <form class="auth-card" novalidate @submit.prevent="handleSubmit">
       <RouterLink to="/" class="auth-brand">
-        <span class="auth-brand-mark"><SiIcon name="hand" :size="26" /></span>
+        <img :src="logoUrl" alt="" class="auth-brand-mark" />
         <span class="auth-brand-text">SignAI</span>
       </RouterLink>
 
@@ -73,6 +73,7 @@
   import { useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import MascotWave from '@/components/MascotWave.vue';
+  import logoUrl from '@/assets/logo/fsignai-logo.png';
   import SiIcon from '@/components/SiIcon.vue';
   import type { AccountKind } from '@/api/auth';
 

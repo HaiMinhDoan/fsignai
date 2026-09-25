@@ -41,7 +41,7 @@
   <header class="header">
     <div class="header-inner">
       <RouterLink to="/" class="logo">
-        <span class="logo-mark"><SiIcon name="hand" :size="22" /></span>
+        <img :src="logoUrl" alt="" class="logo-mark" />
         <span class="logo-text"><span class="logo-a">Sign</span><span class="logo-b">AI</span></span>
       </RouterLink>
 
@@ -90,7 +90,7 @@
     <div class="footer-inner">
       <div class="footer-top">
         <div class="footer-brand">
-          <span class="logo-mark"><SiIcon name="hand" :size="22" /></span>
+          <img :src="logoUrl" alt="" class="logo-mark" />
           <div>
             <p class="footer-name">SignAI</p>
             <p class="footer-tagline">Học Ngôn Ngữ Ký Hiệu Bằng Cả Niềm Vui</p>
@@ -119,6 +119,7 @@
   import { useA11yStore } from '@/stores/a11y';
   import { useLearnerStatsStore } from '@/stores/learnerStats';
   import SiIcon from '@/components/SiIcon.vue';
+  import logoUrl from '@/assets/logo/fsignai-logo.png';
   import NotificationBell from '@/components/NotificationBell.vue';
 
   defineOptions({ name: 'DefaultLayout' });
@@ -270,14 +271,11 @@
     text-decoration: none;
     flex-shrink: 0;
   }
+  /* Logo đã có nền gradient của riêng nó, không bọc thêm ô màu nào nữa */
   .logo-mark {
-    display: grid;
-    place-items: center;
     width: 36px;
     height: 36px;
-    border-radius: 12px;
-    background: var(--sk-amber);
-    color: #fff;
+    object-fit: contain;
     flex-shrink: 0;
   }
   .logo-text {

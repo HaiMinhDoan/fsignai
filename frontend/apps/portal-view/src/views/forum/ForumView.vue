@@ -19,14 +19,25 @@
           <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.nameVi }}</option>
         </select>
       </label>
-      <label class="field">
-        <span>Tiêu đề</span>
-        <input v-model="draftTitle" type="text" required maxlength="255" placeholder="Tiêu đề bài viết" />
-      </label>
-      <label class="field">
-        <span>Nội dung</span>
-        <textarea v-model="draftBody" rows="4" required placeholder="Bạn muốn chia sẻ điều gì?"></textarea>
-      </label>
+      <div class="field">
+        <span class="field-label">Tiêu đề</span>
+        <input v-model="draftTitle" type="text" maxlength="255" placeholder="Gõ tiêu đề, hoặc để trống" />
+        <SignMediaComposer
+          v-model="draftTitleMedia"
+          only-video
+          hint="Không muốn gõ chữ? Ra hiệu tiêu đề bằng một video ngắn cũng được."
+        />
+      </div>
+
+      <div class="field">
+        <span class="field-label">Nội dung</span>
+        <textarea v-model="draftBody" rows="4" placeholder="Bạn muốn chia sẻ điều gì?"></textarea>
+        <SignMediaComposer
+          v-model="draftMedia"
+          :max="6"
+          hint="Quay ký hiệu hoặc gắn ảnh — tối đa 6 tệp, mỗi video 60 giây."
+        />
+      </div>
       <p v-if="composeError" class="error-text">{{ composeError }}</p>
       <button class="btn-primary" type="submit" :disabled="posting">
         {{ posting ? 'Đang đăng…' : 'Đăng bài' }}
@@ -65,8 +76,24 @@
             <span v-if="p.isPinned" class="pin-badge"><SiIcon name="star" :size="14" /> Ghim</span>
             <span class="cat-tag">{{ p.categoryNameVi }}</span>
           </div>
-          <h2>{{ p.titleVi }}</h2>
-          <p class="post-excerpt">{{ p.bodyMd }}</p>
+          <!-- Bài có thể không có tiêu đề chữ: khi đó chính video ký hiệu là tiêu đề -->
+          <div v-if="!p.titleVi && p.titleMedia" class="title-sign">
+            <img
+              v-if="p.titleMedia.thumbnailUrl"
+              :src="p.titleMedia.thumbnailUrl"
+              alt="Khung hình đầu của video tiêu đề"
+              loading="lazy"
+            />
+            <span v-else class="title-sign-blank"><SiIcon name="play" :size="20" /></span>
+            <h2>Bài bằng ký hiệu</h2>
+          </div>
+          <h2 v-else>{{ p.titleVi }}</h2>
+
+          <p v-if="p.bodyMd" class="post-excerpt">{{ p.bodyMd }}</p>
+          <p v-else-if="tomTatMedia(p)" class="post-excerpt post-excerpt--media">
+            <SiIcon name="play" :size="14" />
+            <span>{{ tomTatMedia(p) }}</span>
+          </p>
           <div class="post-meta">
             <span>{{ p.authorName }}</span>
             <span>·</span>
@@ -85,11 +112,13 @@
 <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
   import SiIcon from '@/components/SiIcon.vue';
+  import SignMediaComposer from '@/components/SignMediaComposer.vue';
   import {
     forumCategoriesApi,
     forumPostsApi,
     forumPostCreateApi,
     type ForumCategory,
+    type ForumMedia,
     type ForumPost,
   } from '@/api/forum';
 
@@ -107,6 +136,15 @@
   const draftCategoryId = ref('');
   const draftTitle = ref('');
   const draftBody = ref('');
+  const draftTitleMedia = ref<ForumMedia[]>([]);
+  const draftMedia = ref<ForumMedia[]>([]);
+
+  /** Bài không có chữ vẫn phải đọc được ngoài danh sách: nói rõ bên trong có gì */
+  function tomTatMedia(p: ForumPost) {
+    const video = (p.media ?? []).filter((m) => m.kind === 'VIDEO').length;
+    const anh = (p.media ?? []).filter((m) => m.kind === 'IMAGE').length;
+    return [video && `${video} video ký hiệu`, anh && `${anh} ảnh`].filter(Boolean).join(' · ');
+  }
 
   function formatRelative(iso: string) {
     const diffMs = Date.now() - new Date(iso).getTime();
@@ -142,11 +180,15 @@
     try {
       await forumPostCreateApi({
         categoryId: draftCategoryId.value,
-        titleVi: draftTitle.value,
-        bodyMd: draftBody.value,
+        titleVi: draftTitle.value.trim() || undefined,
+        bodyMd: draftBody.value.trim() || undefined,
+        titleMediaId: draftTitleMedia.value[0]?.id,
+        mediaIds: draftMedia.value.map((m) => m.id),
       });
       draftTitle.value = '';
       draftBody.value = '';
+      draftTitleMedia.value = [];
+      draftMedia.value = [];
       draftCategoryId.value = '';
       composing.value = false;
       await loadPosts();
@@ -213,8 +255,35 @@
   .field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     font-weight: 600;
+  }
+  .field-label {
+    font-weight: 700;
+  }
+
+  /* Thẻ bài mà tiêu đề là video: khung hình đứng cạnh dòng chữ thay thế */
+  .title-sign {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .title-sign img,
+  .title-sign-blank {
+    width: 84px;
+    height: 60px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--si-surface-2);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .post-excerpt--media {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--si-text-muted);
   }
   .field input,
   .field select,

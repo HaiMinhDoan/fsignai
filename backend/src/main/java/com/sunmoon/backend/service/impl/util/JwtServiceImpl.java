@@ -128,6 +128,12 @@ public class JwtServiceImpl implements JwtService {
                     .claim("id", authInfo.getId())
                     .claim("type", "REFRESH")
                     .claim("userAgent", userAgent)
+                    // Mã ngẫu nhiên cho từng token. Thiếu nó thì hai lần đăng nhập trong cùng
+                    // một giây, cùng máy, cùng tài khoản sẽ sinh ra chuỗi JWT GIỐNG HỆT NHAU
+                    // (claim thời gian chỉ tính theo giây), bản ghi thứ hai đâm vào unique
+                    // refresh_tokens.token_hash và người dùng nhận 409. Bấm đăng nhập hai
+                    // lần, hoặc đăng ký xong vào thẳng, là dính ngay.
+                    .jwtID(UUID.randomUUID().toString())
                     .build();
 
             Payload jwtPayload = new Payload(jwtClaimsSet.toJSONObject());

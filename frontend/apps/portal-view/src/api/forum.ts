@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './http';
+import { apiGet, apiPost, apiPut, apiDelete, http } from './http';
 import type { PageResult } from './dictionary';
 
 export interface ForumCategory {
@@ -13,6 +13,25 @@ export interface ForumCategory {
   postCount: number;
 }
 
+/**
+ * Một video ký hiệu hoặc tấm ảnh người dùng gắn vào bài/bình luận.
+ *
+ * Với nhiều người điếc, tiếng Việt viết là ngôn ngữ thứ hai — bài viết bằng
+ * video ký hiệu không phải tính năng phụ mà là cách nói tự nhiên của họ.
+ */
+export interface ForumMedia {
+  id: string;
+  kind: 'VIDEO' | 'IMAGE';
+  source: 'WEBCAM_RECORDED' | 'FILE_UPLOAD';
+  url: string;
+  thumbnailUrl?: string;
+  durationMs?: number;
+  width?: number;
+  height?: number;
+  sizeBytes?: number;
+  mimeType?: string;
+}
+
 export type ForumPostStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'HIDDEN' | 'REMOVED';
 
 export interface ForumPost {
@@ -22,8 +41,11 @@ export interface ForumPost {
   authorId: string;
   authorName: string;
   authorAvatarUrl?: string;
-  titleVi: string;
-  bodyMd: string;
+  titleVi?: string;
+  bodyMd?: string;
+  /** Video ký hiệu dùng thay cho tiêu đề chữ */
+  titleMedia?: ForumMedia;
+  media?: ForumMedia[];
   signId?: string;
   signWordVi?: string;
   viewCount: number;
@@ -46,7 +68,8 @@ export interface ForumComment {
   authorId: string;
   authorName: string;
   authorAvatarUrl?: string;
-  bodyText: string;
+  bodyText?: string;
+  media?: ForumMedia[];
   reactionCount: number;
   myReaction: boolean;
   status: string;
@@ -55,8 +78,11 @@ export interface ForumComment {
 
 export interface ForumPostSaveParams {
   categoryId: string;
-  titleVi: string;
-  bodyMd: string;
+  /** Để trống khi tiêu đề là video ký hiệu */
+  titleVi?: string;
+  bodyMd?: string;
+  titleMediaId?: string;
+  mediaIds?: string[];
   signId?: string;
 }
 
@@ -78,8 +104,42 @@ export const forumPostDeleteApi = (id: string) => apiDelete<void>(`/forum/posts/
 
 export const forumCommentsApi = (postId: string) => apiGet<ForumComment[]>(`/forum/posts/${postId}/comments`);
 
-export const forumCommentCreateApi = (postId: string, bodyText: string, parentId?: string) =>
-  apiPost<ForumComment>(`/forum/posts/${postId}/comments`, { bodyText, parentId });
+export const forumCommentCreateApi = (
+  postId: string,
+  bodyText: string,
+  parentId?: string,
+  mediaIds?: string[],
+) => apiPost<ForumComment>(`/forum/posts/${postId}/comments`, { bodyText, parentId, mediaIds });
+
+/**
+ * Tải một video ký hiệu hoặc ảnh lên TRƯỚC khi đăng bài.
+ *
+ * `poster` là khung hình do trình duyệt tự cắt ra từ video: máy chủ Java không
+ * giải mã được video, thiếu nó thì danh sách bài hiện một ô đen.
+ */
+export const forumMediaUploadApi = (
+  file: File,
+  opts: { poster?: Blob; source?: 'WEBCAM_RECORDED' | 'FILE_UPLOAD'; durationMs?: number; width?: number; height?: number } = {},
+) => {
+  const form = new FormData();
+  form.append('file', file);
+  if (opts.poster) form.append('poster', opts.poster, 'poster.jpg');
+  return http
+    .post<{ data: ForumMedia }>('/forum/media', form, {
+      params: {
+        source: opts.source,
+        durationMs: opts.durationMs,
+        width: opts.width,
+        height: opts.height,
+      },
+      headers: { 'Content-Type': 'multipart/form-data' },
+      // Video 60 giây qua mạng chậm cần lâu hơn 15 giây mặc định
+      timeout: 5 * 60 * 1000,
+    })
+    .then((r) => r.data.data);
+};
+
+export const forumMediaDeleteApi = (id: string) => apiDelete<void>(`/forum/media/${id}`);
 
 export const forumCommentDeleteApi = (id: string) => apiDelete<void>(`/forum/comments/${id}`);
 

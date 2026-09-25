@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /** Dùng cho cả danh sách (bodyMd rỗng khi liệt kê) lẫn chi tiết */
@@ -25,6 +26,12 @@ public class ForumPostResponse {
 
     String titleVi;
     String bodyMd;
+
+    /** Video ký hiệu thay cho tiêu đề chữ; null nếu tiêu đề chỉ có chữ */
+    MediaResponse titleMedia;
+
+    /** Video ký hiệu và ảnh trong nội dung bài */
+    List<MediaResponse> media;
 
     UUID signId;
     String signWordVi;

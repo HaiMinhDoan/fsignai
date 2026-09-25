@@ -1,6 +1,7 @@
 package com.sunmoon.backend.controllers;
 
 import com.sunmoon.backend.constant.context.SecurityContextHolder;
+import com.sunmoon.backend.constant.enums.MediaSource;
 import com.sunmoon.backend.constant.enums.ReactionTargetType;
 import com.sunmoon.backend.constant.enums.RoleType;
 import com.sunmoon.backend.customizeanotations.RequireAuth;
@@ -13,7 +14,9 @@ import com.sunmoon.backend.dto.response.forum.ForumCategoryResponse;
 import com.sunmoon.backend.dto.response.forum.ForumCommentResponse;
 import com.sunmoon.backend.dto.response.forum.ForumPostResponse;
 import com.sunmoon.backend.dto.response.forum.ForumReportResponse;
+import com.sunmoon.backend.dto.response.forum.MediaResponse;
 import com.sunmoon.backend.service.ForumCategoryService;
+import com.sunmoon.backend.service.ForumMediaService;
 import com.sunmoon.backend.service.ForumCommentService;
 import com.sunmoon.backend.service.ForumPostService;
 import com.sunmoon.backend.service.ForumReactionService;
@@ -24,8 +27,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -42,6 +47,7 @@ public class ForumController {
     private final ForumCommentService forumCommentService;
     private final ForumReactionService forumReactionService;
     private final ForumReportService forumReportService;
+    private final ForumMediaService forumMediaService;
 
     @Operation(summary = "Danh sách chuyên mục đang mở")
     @RequireAuth(roles = {RoleType.ALL})
@@ -70,7 +76,37 @@ public class ForumController {
         return ok(forumPostService.detail(id, me, true), "FORUM_POST_DETAIL_SUCCESS");
     }
 
-    @Operation(summary = "Đăng bài mới - hiện công khai ngay, chỉ gỡ khi bị báo cáo và duyệt gỡ")
+    @Operation(summary = "Tải video ký hiệu hoặc ảnh lên",
+            description = "Gọi TRƯỚC khi đăng bài: người dùng quay xong, xem lại, quay lại nếu chưa ưng, "
+                    + "rồi mới bấm Đăng. Trả về id để truyền vào titleMediaId hoặc mediaIds. "
+                    + "Ảnh đại diện của video do trình duyệt cắt rồi gửi kèm ở phần 'poster' — "
+                    + "máy chủ Java không giải mã được video.")
+    @RequireAuth(roles = {RoleType.ALL})
+    @PostMapping(value = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseData<MediaResponse>> uploadMedia(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "poster", required = false) MultipartFile poster,
+            @RequestParam(required = false) MediaSource source,
+            @RequestParam(required = false) Integer durationMs,
+            @RequestParam(required = false) Integer width,
+            @RequestParam(required = false) Integer height) {
+        UUID me = SecurityContextHolder.getAuthInfo().getId();
+        return ok(forumMediaService.upload(me, file, poster, source, durationMs, width, height),
+                "FORUM_MEDIA_UPLOADED");
+    }
+
+    @Operation(summary = "Bỏ tệp vừa tải lên nhưng chưa đăng",
+            description = "Chỉ xoá được tệp của chính mình và chưa gắn vào bài hay bình luận nào.")
+    @RequireAuth(roles = {RoleType.ALL})
+    @DeleteMapping("/media/{id}")
+    public ResponseEntity<ResponseData<Void>> deleteMedia(@PathVariable UUID id) {
+        forumMediaService.deleteOwnUnattached(SecurityContextHolder.getAuthInfo().getId(), id);
+        return ok(null, "FORUM_MEDIA_DELETED");
+    }
+
+    @Operation(summary = "Đăng bài mới - hiện công khai ngay, chỉ gỡ khi bị báo cáo và duyệt gỡ",
+            description = "Tiêu đề và nội dung đều có thể là chữ, video ký hiệu, ảnh — hoặc bỏ trống, "
+                    + "miễn là bài nói được điều gì đó bằng ít nhất một kênh.")
     @RequireAuth(roles = {RoleType.ALL})
     @PostMapping("/posts")
     public ResponseEntity<ResponseData<ForumPostResponse>> createPost(@Valid @RequestBody ForumPostRequest request) {

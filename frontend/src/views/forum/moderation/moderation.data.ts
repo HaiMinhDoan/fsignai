@@ -31,7 +31,41 @@ export const columns: BasicColumn[] = [
     dataIndex: 'titleVi',
     width: 260,
     customRender: ({ record }) =>
-      h('span', {}, [record.isPinned ? h(Tag, { color: 'gold' }, () => 'Ghim') : null, ' ', record.titleVi]),
+      h('span', {}, [
+        record.isPinned ? h(Tag, { color: 'gold' }, () => 'Ghim') : null,
+        ' ',
+        // Bài có thể không có tiêu đề chữ: người điếc ra hiệu tiêu đề bằng video.
+        // Kiểm duyệt viên phải biết ngay đây là bài ký hiệu chứ không phải bài lỗi.
+        record.titleVi || h(Tag, { color: 'blue' }, () => 'Bài bằng ký hiệu'),
+      ]),
+  },
+  {
+    title: 'Video / ảnh',
+    dataIndex: 'media',
+    width: 150,
+    customRender: ({ record }) => {
+      const tatCa = [...(record.titleMedia ? [record.titleMedia] : []), ...(record.media ?? [])];
+      if (!tatCa.length) {
+        return h('span', { style: 'color:#999' }, '—');
+      }
+      // Bấm vào để xem tận nơi: không xem được video thì không kiểm duyệt được bài video
+      return h(
+        'span',
+        { style: 'display:flex;gap:4px;align-items:center;flex-wrap:wrap' },
+        tatCa.slice(0, 3).map((m: any) =>
+          h('img', {
+            src: m.thumbnailUrl || m.url,
+            title: m.kind === 'VIDEO' ? 'Video ký hiệu — bấm để xem' : 'Ảnh — bấm để xem',
+            style:
+              'width:44px;height:34px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #d9d9d9',
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('forum-xem-media', { detail: tatCa }));
+            },
+          }),
+        ),
+      );
+    },
   },
   {
     title: 'Chuyên mục',

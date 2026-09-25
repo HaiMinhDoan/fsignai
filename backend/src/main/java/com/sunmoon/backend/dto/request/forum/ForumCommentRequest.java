@@ -1,6 +1,5 @@
 package com.sunmoon.backend.dto.request.forum;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -17,6 +16,9 @@ public class ForumCommentRequest {
     /** null = bình luận gốc (depth 0); có giá trị = trả lời (depth 1, tối đa 2 cấp) */
     UUID parentId;
 
-    @NotBlank(message = "Nội dung bình luận không được để trống")
+    /** Chữ. Được phép trống nếu bình luận có video ký hiệu hoặc ảnh. */
     String bodyText;
+
+    /** Video ký hiệu và ảnh đính kèm, theo đúng thứ tự muốn hiện */
+    java.util.List<java.util.UUID> mediaIds;
 }

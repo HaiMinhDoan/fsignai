@@ -24,14 +24,27 @@ export interface ForumCategorySaveParams {
 
 export type ForumPostStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'HIDDEN' | 'REMOVED';
 
+/** Video ký hiệu hoặc ảnh người dùng gắn vào bài — kiểm duyệt viên phải xem được */
+export interface ForumMediaModel {
+  id: string;
+  kind: 'VIDEO' | 'IMAGE';
+  source: 'WEBCAM_RECORDED' | 'FILE_UPLOAD';
+  url: string;
+  thumbnailUrl?: string;
+  durationMs?: number;
+}
+
 export interface ForumPostModel {
   id: string;
   categoryId: string;
   categoryNameVi: string;
   authorId: string;
   authorName: string;
-  titleVi: string;
-  bodyMd: string;
+  /** Rỗng khi tác giả ra hiệu tiêu đề bằng video thay vì gõ chữ */
+  titleVi?: string;
+  bodyMd?: string;
+  titleMedia?: ForumMediaModel;
+  media?: ForumMediaModel[];
   viewCount: number;
   commentCount: number;
   reactionCount: number;

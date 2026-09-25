@@ -34,10 +34,15 @@ public class ForumPost {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    // Co the rong: tieu de duoc phep la video ky hieu, hoac khong co gi ca
     @Size(max = 255)
-    @NotNull
-    @Column(name = "title_vi", nullable = false, length = 255)
+    @Column(name = "title_vi", length = 255)
     private String titleVi;
+
+    // Video ky hieu dung LAM TIEU DE - hien ngoai danh sach thay cho dong chu
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "title_media_id")
+    private MediaAsset titleMedia;
 
     // Co the rong neu bai chi co video
     @Column(name = "body_md", length = Integer.MAX_VALUE)

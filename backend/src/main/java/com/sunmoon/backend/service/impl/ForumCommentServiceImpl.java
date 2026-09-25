@@ -7,6 +7,8 @@ import com.sunmoon.backend.constant.enums.ReactionTargetType;
 import com.sunmoon.backend.dto.request.forum.ForumCommentRequest;
 import com.sunmoon.backend.dto.request.forum.ForumModerateRequest;
 import com.sunmoon.backend.dto.response.forum.ForumCommentResponse;
+import com.sunmoon.backend.dto.response.forum.MediaResponse;
+import com.sunmoon.backend.service.ForumMediaService;
 import com.sunmoon.backend.entity.auth.User;
 import com.sunmoon.backend.entity.forum.ForumComment;
 import com.sunmoon.backend.entity.forum.ForumPost;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 public class ForumCommentServiceImpl implements ForumCommentService {
 
     private final ForumCommentRepository forumCommentRepository;
+    private final ForumMediaService forumMediaService;
     private final ForumPostRepository forumPostRepository;
     private final ForumReactionRepository forumReactionRepository;
     private final UserRepository userRepository;
@@ -53,7 +56,11 @@ public class ForumCommentServiceImpl implements ForumCommentService {
                         comments.stream().map(ForumComment::getId).collect(Collectors.toSet()))
                 .stream().map(r -> r.getTargetId()).collect(Collectors.toSet());
 
-        return comments.stream().map(c -> toResponse(c, likedIds.contains(c.getId()))).toList();
+        Map<UUID, List<MediaResponse>> media = forumMediaService
+                .ofComments(comments.stream().map(ForumComment::getId).toList());
+        return comments.stream()
+                .map(c -> toResponse(c, likedIds.contains(c.getId()), media.get(c.getId())))
+                .toList();
     }
 
     @Override
@@ -82,15 +89,22 @@ public class ForumCommentServiceImpl implements ForumCommentService {
             depth = 1;
         }
 
+        boolean coChu = request.getBodyText() != null && !request.getBodyText().isBlank();
+        boolean coHinh = request.getMediaIds() != null && !request.getMediaIds().isEmpty();
+        if (!coChu && !coHinh) {
+            throw new InvalidFieldException("Bình luận cần ít nhất một dòng chữ, một video ký hiệu hoặc một tấm ảnh");
+        }
+
         ForumComment comment = ForumComment.builder()
                 .post(post)
                 .author(userRepository.getReferenceById(authorId))
                 .parent(parent)
                 .depth(depth)
-                .bodyText(request.getBodyText().trim())
+                .bodyText(coChu ? request.getBodyText().trim() : null)
                 .status(ForumCommentStatus.PUBLISHED)
                 .build();
         ForumComment saved = forumCommentRepository.save(comment);
+        forumMediaService.attachToComment(saved, authorId, request.getMediaIds());
 
         forumPostRepository.bumpCommentCount(postId, 1, OffsetDateTime.now());
 
@@ -100,7 +114,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         if (!recipientId.equals(authorId)) {
             notificationService.notify(recipientId, NotificationType.FORUM_REPLY,
                     parent != null ? "Có người trả lời bình luận của bạn" : "Có bình luận mới trong bài viết của bạn",
-                    saved.getBodyText(), null, false);
+                    coChu ? saved.getBodyText() : "Đã gửi một video ký hiệu", null, false);
         }
 
         return toResponse(saved, false);
@@ -158,6 +172,11 @@ public class ForumCommentServiceImpl implements ForumCommentService {
     }
 
     private ForumCommentResponse toResponse(ForumComment c, boolean myReaction) {
+        return toResponse(c, myReaction, forumMediaService.ofComments(List.of(c.getId())).get(c.getId()));
+    }
+
+    /** Bản nhận sẵn media - danh sách bình luận nạp media một lần cho cả bài */
+    private ForumCommentResponse toResponse(ForumComment c, boolean myReaction, List<MediaResponse> media) {
         User author = c.getAuthor();
         return ForumCommentResponse.builder()
                 .id(c.getId())
@@ -168,6 +187,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
                 .authorName(author.getFullName())
                 .authorAvatarUrl(author.getAvatarFile() == null ? null : author.getAvatarFile().getPublicUrl())
                 .bodyText(c.getBodyText())
+                .media(media == null ? List.of() : media)
                 .reactionCount(c.getReactionCount())
                 .myReaction(myReaction)
                 .status(c.getStatus())

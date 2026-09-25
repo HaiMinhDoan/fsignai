@@ -36,13 +36,9 @@
   width: fit-content;
 }
 .auth-brand-mark {
-  display: grid;
-  place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
-  background: var(--si-kid-sun);
-  color: var(--si-text);
+  object-fit: contain;
 }
 .auth-brand-text {
   font-weight: 800;

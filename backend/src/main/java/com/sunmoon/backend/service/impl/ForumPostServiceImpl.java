@@ -7,6 +7,9 @@ import com.sunmoon.backend.dto.request.forum.ForumModerateRequest;
 import com.sunmoon.backend.dto.request.forum.ForumPostRequest;
 import com.sunmoon.backend.dto.response.PageResponse;
 import com.sunmoon.backend.dto.response.forum.ForumPostResponse;
+import com.sunmoon.backend.dto.response.forum.MediaResponse;
+import com.sunmoon.backend.entity.forum.MediaAsset;
+import com.sunmoon.backend.service.ForumMediaService;
 import com.sunmoon.backend.entity.auth.User;
 import com.sunmoon.backend.entity.dictionary.Sign;
 import com.sunmoon.backend.entity.forum.ForumCategory;
@@ -26,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -36,6 +40,7 @@ import java.util.stream.Collectors;
 public class ForumPostServiceImpl implements ForumPostService {
 
     private final ForumPostRepository forumPostRepository;
+    private final ForumMediaService forumMediaService;
     private final ForumCategoryRepository forumCategoryRepository;
     private final ForumReactionRepository forumReactionRepository;
     private final UserRepository userRepository;
@@ -47,7 +52,9 @@ public class ForumPostServiceImpl implements ForumPostService {
     public PageResponse<ForumPostResponse> listPublished(UUID categoryId, UUID currentUserId, Pageable pageable) {
         Page<ForumPost> page = forumPostRepository.findFeed(ForumPostStatus.PUBLISHED, categoryId, pageable);
         Set<UUID> likedIds = likedTargetIds(currentUserId, page.getContent().stream().map(ForumPost::getId).collect(Collectors.toSet()));
-        return PageResponse.of(page, p -> toResponse(p, likedIds.contains(p.getId())));
+        Map<UUID, List<MediaResponse>> media = forumMediaService
+                .ofPosts(page.getContent().stream().map(ForumPost::getId).toList());
+        return PageResponse.of(page, p -> toResponse(p, likedIds.contains(p.getId()), media.get(p.getId())));
     }
 
     @Override
@@ -83,11 +90,15 @@ public class ForumPostServiceImpl implements ForumPostService {
         Sign sign = request.getSignId() == null ? null : signRepository.findById(request.getSignId())
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy từ được gắn"));
 
+        phaiCoNoiDung(request);
+        MediaAsset titleMedia = forumMediaService.resolveTitleMedia(authorId, request.getTitleMediaId());
+
         OffsetDateTime now = OffsetDateTime.now();
         ForumPost post = ForumPost.builder()
                 .category(category)
                 .author(userRepository.getReferenceById(authorId))
-                .titleVi(request.getTitleVi().trim())
+                .titleVi(chuanHoaTieuDe(request.getTitleVi()))
+                .titleMedia(titleMedia)
                 .bodyMd(request.getBodyMd())
                 .sign(sign)
                 .status(ForumPostStatus.PUBLISHED)
@@ -95,7 +106,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .lastActivityAt(now)
                 .build();
 
-        return toResponse(forumPostRepository.save(post), false);
+        post = forumPostRepository.save(post);
+        forumMediaService.attachToPost(post, authorId, request.getMediaIds());
+        return toResponse(post, false);
     }
 
     @Override
@@ -111,10 +124,13 @@ public class ForumPostServiceImpl implements ForumPostService {
         Sign sign = request.getSignId() == null ? null : signRepository.findById(request.getSignId())
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy từ được gắn"));
 
+        phaiCoNoiDung(request);
         post.setCategory(category);
-        post.setTitleVi(request.getTitleVi().trim());
+        post.setTitleVi(chuanHoaTieuDe(request.getTitleVi()));
+        post.setTitleMedia(forumMediaService.resolveTitleMedia(authorId, request.getTitleMediaId()));
         post.setBodyMd(request.getBodyMd());
         post.setSign(sign);
+        forumMediaService.attachToPost(post, authorId, request.getMediaIds());
 
         boolean liked = forumReactionRepository
                 .findByUser_IdAndTargetTypeAndTargetId(authorId, ReactionTargetType.POST, id).isPresent();
@@ -191,6 +207,29 @@ public class ForumPostServiceImpl implements ForumPostService {
         return post;
     }
 
+    /**
+     * Bài phải nói được điều gì đó: chữ hoặc hình, ở tiêu đề hoặc ở nội dung.
+     *
+     * Không ép có tiêu đề chữ: với người điếc, tiếng Việt viết là ngôn ngữ thứ hai,
+     * ra hiệu tiêu đề bằng video là cách nói tự nhiên hơn.
+     */
+    private void phaiCoNoiDung(ForumPostRequest r) {
+        boolean coChu = (r.getTitleVi() != null && !r.getTitleVi().isBlank())
+                || (r.getBodyMd() != null && !r.getBodyMd().isBlank());
+        boolean coHinh = r.getTitleMediaId() != null
+                || (r.getMediaIds() != null && !r.getMediaIds().isEmpty());
+        if (!coChu && !coHinh) {
+            throw new CommonException("Bài viết cần ít nhất một dòng chữ, một video ký hiệu hoặc một tấm ảnh");
+        }
+    }
+
+    private static String chuanHoaTieuDe(String tieuDe) {
+        if (tieuDe == null || tieuDe.isBlank()) {
+            return null;
+        }
+        return tieuDe.trim();
+    }
+
     private CommonException forbidden(String message) {
         CommonException ex = new CommonException(message);
         ex.setHttpStatus(HttpStatus.FORBIDDEN);
@@ -205,6 +244,16 @@ public class ForumPostServiceImpl implements ForumPostService {
     }
 
     private ForumPostResponse toResponse(ForumPost p, boolean myReaction) {
+        return toResponse(p, myReaction, forumMediaService.ofPosts(List.of(p.getId())).get(p.getId()));
+    }
+
+    /**
+     * Bản nhận sẵn danh sách media.
+     *
+     * Danh sách bài phải nạp media của CẢ TRANG trong một truy vấn; gọi bản trên cho
+     * từng bài là 20 bài thành 20 vòng hỏi CSDL.
+     */
+    private ForumPostResponse toResponse(ForumPost p, boolean myReaction, List<MediaResponse> media) {
         User author = p.getAuthor();
         return ForumPostResponse.builder()
                 .id(p.getId())
@@ -214,7 +263,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .authorName(author.getFullName())
                 .authorAvatarUrl(author.getAvatarFile() == null ? null : author.getAvatarFile().getPublicUrl())
                 .titleVi(p.getTitleVi())
+                .titleMedia(forumMediaService.toResponse(p.getTitleMedia()))
                 .bodyMd(p.getBodyMd())
+                .media(media == null ? List.of() : media)
                 .signId(p.getSign() == null ? null : p.getSign().getId())
                 .signWordVi(p.getSign() == null ? null : p.getSign().getWordVi())
                 .viewCount(p.getViewCount())

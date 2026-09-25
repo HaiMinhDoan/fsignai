@@ -11,13 +11,16 @@
           <span class="cat-tag">{{ post.categoryNameVi }}</span>
           <span v-if="post.isPinned" class="pin-badge"><SiIcon name="star" :size="14" /> Ghim</span>
         </div>
-        <h1>{{ post.titleVi }}</h1>
+        <h1>{{ post.titleVi || 'Bài bằng ký hiệu' }}</h1>
+        <!-- Tiêu đề ra hiệu bằng video: đặt ngay dưới dòng chữ thay thế -->
+        <SignMediaGallery v-if="post.titleMedia" :media="[post.titleMedia]" size="small" />
         <div class="post-meta">
           <span>{{ post.authorName }}</span>
           <span>·</span>
           <span>{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</span>
         </div>
-        <p class="post-body">{{ post.bodyMd }}</p>
+        <p v-if="post.bodyMd" class="post-body">{{ post.bodyMd }}</p>
+        <SignMediaGallery :media="post.media" />
 
         <div class="post-actions">
           <button type="button" class="action-btn" :class="{ 'is-on': post.myReaction }" @click="toggleLike">
@@ -37,14 +40,16 @@
         </div>
 
         <form v-if="editing" class="composer" @submit.prevent="saveEdit">
-          <label class="field">
-            <span>Tiêu đề</span>
-            <input v-model="editTitle" type="text" required maxlength="255" />
-          </label>
-          <label class="field">
-            <span>Nội dung</span>
-            <textarea v-model="editBody" rows="4" required></textarea>
-          </label>
+          <div class="field">
+            <span class="field-label">Tiêu đề</span>
+            <input v-model="editTitle" type="text" maxlength="255" placeholder="Gõ tiêu đề, hoặc để trống" />
+            <SignMediaComposer v-model="editTitleMedia" only-video hint="Hoặc ra hiệu tiêu đề bằng video." />
+          </div>
+          <div class="field">
+            <span class="field-label">Nội dung</span>
+            <textarea v-model="editBody" rows="4"></textarea>
+            <SignMediaComposer v-model="editMedia" :max="6" hint="Tối đa 6 tệp, mỗi video 60 giây." />
+          </div>
           <button class="btn-primary" type="submit" :disabled="saving">
             {{ saving ? 'Đang lưu…' : 'Lưu thay đổi' }}
           </button>
@@ -54,8 +59,9 @@
       <section class="comments">
         <h2>Bình luận ({{ comments.length }})</h2>
 
-        <form class="comment-form" @submit.prevent="submitComment()">
-          <textarea v-model="newComment" rows="2" placeholder="Viết bình luận…" required></textarea>
+        <form class="comment-form comment-form--rich" @submit.prevent="submitComment()">
+          <textarea v-model="newComment" rows="2" placeholder="Viết bình luận, hoặc trả lời bằng ký hiệu…"></textarea>
+          <SignMediaComposer v-model="newCommentMedia" :max="3" hint="Quay ký hiệu hoặc gắn ảnh cho bình luận." />
           <button class="btn-primary" type="submit" :disabled="commenting">Gửi</button>
         </form>
 
@@ -70,8 +76,13 @@
               @report="openReport('COMMENT', c.id)"
             />
 
-            <form v-if="replyTo === c.id" class="comment-form comment-form--reply" @submit.prevent="submitComment(c.id)">
-              <textarea v-model="replyText" rows="2" placeholder="Trả lời…" required></textarea>
+            <form
+              v-if="replyTo === c.id"
+              class="comment-form comment-form--reply comment-form--rich"
+              @submit.prevent="submitComment(c.id)"
+            >
+              <textarea v-model="replyText" rows="2" placeholder="Trả lời bằng chữ hoặc ký hiệu…"></textarea>
+              <SignMediaComposer v-model="replyMedia" :max="3" />
               <button class="btn-primary" type="submit" :disabled="commenting">Gửi</button>
             </form>
 
@@ -125,6 +136,8 @@
   import { useRoute, useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import SiIcon from '@/components/SiIcon.vue';
+  import SignMediaComposer from '@/components/SignMediaComposer.vue';
+  import SignMediaGallery from '@/components/SignMediaGallery.vue';
   import {
     forumPostDetailApi,
     forumPostUpdateApi,
@@ -137,6 +150,7 @@
     forumReportApi,
     type ForumPost,
     type ForumComment,
+    type ForumMedia,
     type ReportReason,
   } from '@/api/forum';
 
@@ -152,7 +166,8 @@
             h('strong', props.comment.authorName),
             h('span', new Date(props.comment.createdAt).toLocaleString('vi-VN')),
           ]),
-          h('p', { class: 'comment-body' }, props.comment.bodyText),
+          props.comment.bodyText ? h('p', { class: 'comment-body' }, props.comment.bodyText) : null,
+          h(SignMediaGallery, { media: props.comment.media, size: 'small' }),
           h('div', { class: 'comment-actions' }, [
             h(
               'button',
@@ -183,11 +198,15 @@
   const editing = ref(false);
   const editTitle = ref('');
   const editBody = ref('');
+  const editTitleMedia = ref<ForumMedia[]>([]);
+  const editMedia = ref<ForumMedia[]>([]);
   const saving = ref(false);
 
   const newComment = ref('');
+  const newCommentMedia = ref<ForumMedia[]>([]);
   const replyTo = ref<string | null>(null);
   const replyText = ref('');
+  const replyMedia = ref<ForumMedia[]>([]);
   const commenting = ref(false);
 
   const reportTarget = ref<{ type: 'POST' | 'COMMENT'; id: string } | null>(null);
@@ -206,8 +225,10 @@
       const [p, c] = await Promise.all([forumPostDetailApi(postId.value), forumCommentsApi(postId.value)]);
       post.value = p;
       comments.value = c;
-      editTitle.value = p.titleVi;
-      editBody.value = p.bodyMd;
+      editTitle.value = p.titleVi ?? '';
+      editBody.value = p.bodyMd ?? '';
+      editTitleMedia.value = p.titleMedia ? [p.titleMedia] : [];
+      editMedia.value = [...(p.media ?? [])];
     } catch (e) {
       error.value = (e as Error).message;
     } finally {
@@ -228,8 +249,10 @@
     try {
       post.value = await forumPostUpdateApi(post.value.id, {
         categoryId: post.value.categoryId,
-        titleVi: editTitle.value,
-        bodyMd: editBody.value,
+        titleVi: editTitle.value.trim() || undefined,
+        bodyMd: editBody.value.trim() || undefined,
+        titleMediaId: editTitleMedia.value[0]?.id,
+        mediaIds: editMedia.value.map((m) => m.id),
       });
       editing.value = false;
     } catch (e) {
@@ -247,17 +270,26 @@
 
   async function submitComment(parentId?: string) {
     const text = parentId ? replyText.value : newComment.value;
-    if (!text.trim()) return;
+    const media = parentId ? replyMedia.value : newCommentMedia.value;
+    // Bình luận chỉ có video ký hiệu vẫn hợp lệ — không ép phải gõ chữ
+    if (!text.trim() && media.length === 0) return;
     commenting.value = true;
     try {
-      const created = await forumCommentCreateApi(postId.value, text, parentId);
+      const created = await forumCommentCreateApi(
+        postId.value,
+        text,
+        parentId,
+        media.map((m) => m.id),
+      );
       comments.value.push(created);
       if (post.value) post.value.commentCount += 1;
       if (parentId) {
         replyText.value = '';
+        replyMedia.value = [];
         replyTo.value = null;
       } else {
         newComment.value = '';
+        newCommentMedia.value = [];
       }
     } catch (e) {
       error.value = (e as Error).message;
@@ -453,6 +485,17 @@
   }
   .comments h2 {
     font-size: 20px;
+  }
+  .comment-form--rich {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .comment-form--rich .btn-primary {
+    align-self: flex-start;
+  }
+  .field-label {
+    font-weight: 700;
   }
   .comment-form {
     display: flex;
