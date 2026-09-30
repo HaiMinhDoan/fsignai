@@ -21,6 +21,29 @@ export const lessonCreateApi = (courseId: string, params: LessonSaveParams) =>
 export const lessonReorderApi = (courseId: string, params: ReorderParams) =>
   defHttp.post<void>({ url: `${COURSES}/${courseId}/lessons/reorder`, data: params });
 
+/**
+ * Xuất bản / gỡ xuất bản mọi bài của khoá trong một lần.
+ * Bài chưa có nội dung bị bỏ qua khi xuất bản và được đếm vào `skipped`.
+ */
+export const lessonPublishAllApi = (courseId: string, published: boolean) =>
+  // Tham số nằm thẳng trên URL: với POST, lớp http của vben gộp `params` vào thân
+  // yêu cầu, máy chủ không thấy query nào và trả 400 "thiếu tham số published"
+  defHttp.post<{ affected: number; skipped: number }>({
+    url: `${COURSES}/${courseId}/lessons/publish?published=${published}`,
+  });
+
+/** Tải một tấm ảnh lên kho tệp chung, trả về id để gắn vào khoá học (ảnh đại diện) */
+export const imageUploadApi = (file: File, entityType?: string) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return defHttp.post<{ id: string; url: string }>({
+    url: `/api/v1/admin/files/images${entityType ? `?entityType=${entityType}` : ''}`,
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 2 * 60 * 1000,
+  });
+};
+
 /** Kèm toàn bộ nội dung bên trong bài học */
 export const lessonDetailApi = (lessonId: string) =>
   defHttp.get<LessonModel>({ url: `${LESSONS}/${lessonId}` });

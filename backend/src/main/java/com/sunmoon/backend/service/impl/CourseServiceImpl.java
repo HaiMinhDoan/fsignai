@@ -21,6 +21,7 @@ import com.sunmoon.backend.mapper.CourseMapper;
 import com.sunmoon.backend.mapper.LessonMapper;
 import com.sunmoon.backend.repository.*;
 import com.sunmoon.backend.service.CourseService;
+import com.sunmoon.backend.service.MinioService;
 import com.sunmoon.backend.service.impl.util.VietnameseTextUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -33,6 +34,8 @@ import java.util.*;
 @Service
 public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements CourseService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CourseServiceImpl.class);
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -43,6 +46,7 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements 
     private final SignRepository signRepository;
     private final SignTopicRepository signTopicRepository;
     private final FileAttachmentRepository fileRepository;
+    private final MinioService minioService;
     private final UserCourseProgressRepository courseProgressRepository;
     private final UserLessonProgressRepository lessonProgressRepository;
     private final CourseMapper courseMapper;
@@ -55,6 +59,7 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements 
                              SignRepository signRepository,
                              SignTopicRepository signTopicRepository,
                              FileAttachmentRepository fileRepository,
+                             MinioService minioService,
                              UserCourseProgressRepository courseProgressRepository,
                              UserLessonProgressRepository lessonProgressRepository,
                              CourseMapper courseMapper,
@@ -69,6 +74,7 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements 
         this.signRepository = signRepository;
         this.signTopicRepository = signTopicRepository;
         this.fileRepository = fileRepository;
+        this.minioService = minioService;
         this.courseProgressRepository = courseProgressRepository;
         this.lessonProgressRepository = lessonProgressRepository;
         this.courseMapper = courseMapper;
@@ -443,11 +449,34 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements 
                     .orElseThrow(() -> new NotFoundException("Không tìm thấy chủ đề: " + request.getTopicId()));
             entity.setTopic(topic);
         }
-        if (request.getCoverFileId() != null) {
+        FileAttachment cu = entity.getCoverFile();
+        if (Boolean.TRUE.equals(request.getRemoveCover())) {
+            entity.setCoverFile(null);
+            donAnhBiaCu(entity, cu);
+        } else if (request.getCoverFileId() != null
+                && (cu == null || !cu.getId().equals(request.getCoverFileId()))) {
             FileAttachment cover = fileRepository.findById(request.getCoverFileId())
                     .orElseThrow(() -> new NotFoundException("Không tìm thấy tệp ảnh bìa"));
             entity.setCoverFile(cover);
+            donAnhBiaCu(entity, cu);
         }
+    }
+
+    /**
+     * Ảnh bìa cũ không còn ai dùng thì xoá hẳn cả tệp lẫn dòng file_attachments.
+     * Không dọn thì mỗi lần đổi ảnh là bỏ lại một tệp nằm trên MinIO vĩnh viễn.
+     */
+    private void donAnhBiaCu(Course entity, FileAttachment cu) {
+        if (cu == null) {
+            return;
+        }
+        courseRepository.saveAndFlush(entity);      // gỡ khoá ngoại trước khi xoá tệp
+        try {
+            minioService.delete(cu.getBucket(), cu.getObjectKey());
+        } catch (Exception e) {
+            log.warn("Không xoá được ảnh bìa cũ {}: {}", cu.getObjectKey(), e.getMessage());
+        }
+        fileRepository.delete(cu);
     }
 
     private String resolveSlug(CourseRequest request, UUID currentId) {

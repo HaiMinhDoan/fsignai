@@ -48,6 +48,16 @@ public class LessonController {
         return ok(lessonService.createLesson(courseId, request), "LESSON_CREATED");
     }
 
+    @Operation(summary = "Xuất bản / gỡ xuất bản toàn bộ bài học của một khoá",
+            description = "Khoá sinh tự động có hàng chục bài đều ở bản nháp; bật từng bài một là không thực tế. "
+                    + "Bài chưa có nội dung bị bỏ qua và được đếm vào 'skipped'.")
+    @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
+    @PostMapping("/courses/{courseId}/lessons/publish")
+    public ResponseEntity<ResponseData<java.util.Map<String, Integer>>> publishAll(
+            @PathVariable UUID courseId, @RequestParam boolean published) {
+        return ok(lessonService.publishAllLessons(courseId, published), "LESSON_PUBLISH_ALL_SUCCESS");
+    }
+
     @Operation(summary = "Sắp xếp lại thứ tự bài học trong khoá")
     @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
     @PostMapping("/courses/{courseId}/lessons/reorder")

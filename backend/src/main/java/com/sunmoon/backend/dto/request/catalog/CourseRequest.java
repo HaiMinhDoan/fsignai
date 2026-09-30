@@ -28,6 +28,12 @@ public class CourseRequest {
 
     UUID coverFileId;
 
+    /**
+     * true = gỡ ảnh bìa. Cần cờ riêng vì coverFileId = null nghĩa là "giữ nguyên"
+     * (form sửa tên khoá không gửi lại ảnh), không phân biệt được với "bỏ ảnh đi".
+     */
+    Boolean removeCover;
+
     UUID topicId;
 
     @Builder.Default

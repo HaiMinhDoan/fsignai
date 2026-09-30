@@ -33,6 +33,8 @@ export interface CourseModel {
 }
 
 export interface CourseSaveParams {
+  /** true = gỡ ảnh đại diện (coverFileId rỗng nghĩa là giữ nguyên, không phải gỡ) */
+  removeCover?: boolean;
   slug?: string;
   titleVi: string;
   descriptionVi?: string;

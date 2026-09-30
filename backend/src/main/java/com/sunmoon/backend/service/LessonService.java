@@ -31,6 +31,12 @@ public interface LessonService extends BaseService<Lesson, UUID> {
 
     void reorderLessons(UUID courseId, ReorderRequest request);
 
+    /**
+     * Xuất bản / gỡ xuất bản mọi bài của một khoá trong một lần.
+     * Bài chưa có nội dung bị bỏ qua khi xuất bản. Trả về {affected, skipped}.
+     */
+    java.util.Map<String, Integer> publishAllLessons(UUID courseId, boolean published);
+
     LessonItemResponse addItem(UUID lessonId, LessonItemRequest request);
 
     /**

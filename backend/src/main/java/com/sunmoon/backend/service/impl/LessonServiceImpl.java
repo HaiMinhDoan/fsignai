@@ -173,6 +173,27 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
 
     @Override
     @Transactional
+    public Map<String, Integer> publishAllLessons(UUID courseId, boolean published) {
+        List<Lesson> lessons = lessonRepository.findAllByCourseIdOrderByDisplayOrderAsc(courseId);
+        int doi = 0;
+        int boQua = 0;
+        for (Lesson l : lessons) {
+            if (published && lessonItemRepository.findAllByLessonIdOrderByDisplayOrderAsc(l.getId()).isEmpty()) {
+                // Cùng luật với xuất bản từng bài: bài trống mà hiện ra thì học viên tưởng hệ thống lỗi
+                boQua++;
+                continue;
+            }
+            if (!Boolean.valueOf(published).equals(l.getIsPublished())) {
+                l.setIsPublished(published);
+                doi++;
+            }
+        }
+        lessonRepository.saveAll(lessons);
+        return Map.of("affected", doi, "skipped", boQua);
+    }
+
+    @Override
+    @Transactional
     public void reorderLessons(UUID courseId, ReorderRequest request) {
         List<Lesson> lessons = lessonRepository.findAllByCourseIdOrderByDisplayOrderAsc(courseId);
         Map<UUID, Lesson> byId = new HashMap<>();
