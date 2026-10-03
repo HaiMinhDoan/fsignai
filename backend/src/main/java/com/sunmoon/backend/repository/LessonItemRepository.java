@@ -27,4 +27,20 @@ public interface LessonItemRepository
     /** Các từ vựng đã nằm trong bài học — dùng để loại khỏi danh sách chọn thêm */
     @Query("SELECT i.sign.id FROM LessonItem i WHERE i.lesson.id = :lessonId AND i.sign.id IS NOT NULL")
     List<UUID> findSignIdsByLessonId(UUID lessonId);
+
+    /**
+     * Từ đã nằm trong một khoá KHÁC khoá đang soạn.
+     *
+     * Quy ước: mỗi từ chỉ thuộc đúng một khoá học, để người học đi hết các khoá
+     * không gặp lại cùng một từ ở khoá sau như thể đó là bài mới.
+     */
+    @Query("""
+            SELECT DISTINCT i.sign.id FROM LessonItem i
+            WHERE i.sign.id IS NOT NULL AND i.lesson.course.id <> :courseId
+            """)
+    List<UUID> findSignIdsUsedOutsideCourse(UUID courseId);
+
+    /** Mọi từ đã có mặt trong bất kỳ khoá nào - dùng khi sinh khoá tự động */
+    @Query("SELECT DISTINCT i.sign.id FROM LessonItem i WHERE i.sign.id IS NOT NULL")
+    List<UUID> findAllUsedSignIds();
 }

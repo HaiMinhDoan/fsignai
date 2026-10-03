@@ -101,15 +101,13 @@ public class LessonController {
     }
 
     @Operation(summary = "Thêm nhiều từ vựng vào bài học cùng lúc",
-            description = "Bỏ qua các từ đã có sẵn trong bài, trả về số từ thực sự được thêm.")
+            description = "Bỏ qua từ đã có sẵn trong bài (skipped) và từ đã thuộc một khoá học khác "
+                    + "(usedElsewhere) - mỗi từ chỉ nằm trong đúng một khoá.")
     @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
     @PostMapping("/lessons/{lessonId}/items/signs")
     public ResponseEntity<ResponseData<Map<String, Integer>>> addSigns(
             @PathVariable UUID lessonId, @RequestBody AddSignsRequest request) {
-        int added = lessonService.addSigns(lessonId, request.signIds());
-        return ok(Map.of("added", added, "skipped",
-                (request.signIds() == null ? 0 : request.signIds().size()) - added),
-                "LESSON_ITEM_ADDED");
+        return ok(lessonService.addSigns(lessonId, request.signIds()), "LESSON_ITEM_ADDED");
     }
 
     @Operation(summary = "Xoá một nội dung khỏi bài học")

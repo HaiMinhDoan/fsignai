@@ -49,6 +49,7 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
     private final SignMapper signMapper;
     private final SignVideoMapper signVideoMapper;
     private final MinioService minioService;
+    private final LessonItemRepository lessonItemRepository;
 
     public SignServiceImpl(SignRepository signRepository,
                            SignVideoRepository signVideoRepository,
@@ -57,7 +58,8 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
                            FileAttachmentRepository fileRepository,
                            SignMapper signMapper,
                            SignVideoMapper signVideoMapper,
-                           MinioService minioService) {
+                           MinioService minioService,
+                           LessonItemRepository lessonItemRepository) {
         // Sign khong co truong "status"; truong trang thai nghiep vu la reviewStatus
         super(signRepository, "reviewStatus");
         this.signRepository = signRepository;
@@ -68,6 +70,7 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
         this.signMapper = signMapper;
         this.signVideoMapper = signVideoMapper;
         this.minioService = minioService;
+        this.lessonItemRepository = lessonItemRepository;
     }
 
     @Override
@@ -103,6 +106,18 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
         addEquals(filters, "reviewStatus", request.getReviewStatus());
         addEquals(filters, "isPublished", request.getIsPublished());
         addEquals(filters, "primaryTopic.id", request.getTopicId());
+
+        if (request.getHideUsedOutsideCourseId() != null) {
+            List<UUID> daDung = lessonItemRepository.findSignIdsUsedOutsideCourse(request.getHideUsedOutsideCourseId());
+            if (!daDung.isEmpty()) {
+                filters.add(FilterCriteria.builder()
+                        .fieldName("id")
+                        .operation(FilterOperation.NOT_IN)
+                        .value(daDung)
+                        .logicType(FilterLogicType.AND)
+                        .build());
+            }
+        }
 
         BaseFilterRequest baseRequest = BaseFilterRequest.builder()
                 .filters(filters)

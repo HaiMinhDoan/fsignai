@@ -298,8 +298,24 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements 
                 .plans(new ArrayList<>())
                 .build();
 
+        // Mỗi từ chỉ thuộc một khoá. 68 từ nằm ở nhiều chủ đề cùng lúc, nên ngoài từ đã
+        // có trong khoá cũ còn phải nhớ cả từ vừa xếp cho chủ đề TRƯỚC ĐÓ trong cùng lần sinh.
+        Set<UUID> daDung = new HashSet<>(lessonItemRepository.findAllUsedSignIds());
+
         for (Topic topic : topics) {
-            List<UUID> signIds = signTopicRepository.findSignIdsByTopicId(topic.getId(), onlyPublished);
+            List<UUID> tatCa = signTopicRepository.findSignIdsByTopicId(topic.getId(), onlyPublished);
+            List<UUID> signIds = tatCa.stream().filter(id -> !daDung.contains(id)).toList();
+
+            if (!tatCa.isEmpty() && signIds.isEmpty()) {
+                result.setTopicsSkipped(result.getTopicsSkipped() + 1);
+                result.getPlans().add(GenerateCoursesResult.TopicPlan.builder()
+                        .topicNameVi(topic.getNameVi())
+                        .signCount(0)
+                        .lessonCount(0)
+                        .skippedReason("Mọi từ của chủ đề này đã nằm trong khoá học khác")
+                        .build());
+                continue;
+            }
 
             if (signIds.isEmpty()) {
                 result.setTopicsSkipped(result.getTopicsSkipped() + 1);
@@ -326,6 +342,7 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, UUID> implements 
                 continue;
             }
 
+            daDung.addAll(signIds);
             int lessonCount = (int) Math.ceil(signIds.size() / (double) perLesson);
             result.getPlans().add(GenerateCoursesResult.TopicPlan.builder()
                     .topicNameVi(topic.getNameVi())

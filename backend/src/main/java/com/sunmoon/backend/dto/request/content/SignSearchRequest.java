@@ -36,7 +36,13 @@ public class SignSearchRequest {
 
     // Hai bo loc dung nhieu nhat trong CMS: tra loi cau "con phai lam gi nua"
     Region missingVideoRegion;   // tu CHUA co video o vung mien nay
-    Boolean missingExemplar;     // tu CHUA cham diem AI duoc
+    Boolean missingExemplar;
+
+    /**
+     * Đang soạn bài cho khoá này: ẩn những từ đã thuộc một khoá KHÁC.
+     * Từ đã có trong chính khoá này vẫn hiện (người soạn cần thấy để chuyển bài).
+     */
+    UUID hideUsedOutsideCourseId;     // tu CHUA cham diem AI duoc
 
     @Builder.Default
     List<SortCriteria> sorts = new ArrayList<>();

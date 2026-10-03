@@ -146,6 +146,8 @@
 
   const lessonId = ref<string>();
   const lessonTitle = ref('');
+  /** Khoá chứa bài đang soạn - để ô tìm từ ẩn những từ đã thuộc khoá khác */
+  const courseId = ref<string>();
   const items = ref<LessonItemModel[]>([]);
 
   const keyword = ref('');
@@ -211,6 +213,8 @@
       const result = await signSearchApi({
         keyword: keyword.value || undefined,
         topicId: topicId.value,
+        // Mỗi từ chỉ thuộc một khoá: từ đã nằm ở khoá khác không hiện ra để chọn nữa
+        hideUsedOutsideCourseId: courseId.value,
         page: 0,
         size: 50,
       } as any);
@@ -229,12 +233,12 @@
     adding.value = true;
     try {
       const result = await lessonAddSignsApi(lessonId.value, pickedSignIds.value);
-      // Backend bỏ qua từ đã có sẵn; nói rõ để người dùng không tưởng là lỗi
-      if (result.skipped > 0) {
-        createMessage.success(`Đã thêm ${result.added} từ, bỏ qua ${result.skipped} từ đã có sẵn`);
-      } else {
-        createMessage.success(`Đã thêm ${result.added} từ`);
-      }
+      // Backend bỏ qua từ đã có sẵn và từ thuộc khoá khác; nói rõ để người dùng không tưởng là lỗi
+      const boQua = [
+        result.skipped ? `${result.skipped} từ đã có trong bài` : '',
+        result.usedElsewhere ? `${result.usedElsewhere} từ đã thuộc khoá học khác` : '',
+      ].filter(Boolean);
+      createMessage.success(`Đã thêm ${result.added} từ` + (boQua.length ? `, bỏ qua ${boQua.join(', ')}` : ''));
       pickedSignIds.value = [];
       await refresh();
       emit('success');
@@ -274,5 +278,6 @@
     if (!lessonId.value) return;
     const detail = await lessonDetailApi(lessonId.value);
     items.value = detail.items ?? [];
+    courseId.value = detail.courseId;
   }
 </script>

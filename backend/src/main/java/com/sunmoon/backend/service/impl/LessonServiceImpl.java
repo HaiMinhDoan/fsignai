@@ -251,18 +251,28 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
 
     @Override
     @Transactional
-    public int addSigns(UUID lessonId, List<UUID> signIds) {
+    public Map<String, Integer> addSigns(UUID lessonId, List<UUID> signIds) {
         if (signIds == null || signIds.isEmpty()) {
-            return 0;
+            return Map.of("added", 0, "skipped", 0, "usedElsewhere", 0);
         }
         Lesson lesson = findLesson(lessonId);
+        List<UUID> chon = signIds.stream().distinct().toList();
 
         // Bỏ từ đã có sẵn trong bài. Chọn trùng là chuyện thường khi tích chọn
         // hàng loạt trên danh sách dài, không đáng để báo lỗi và bắt làm lại.
         Set<UUID> already = new HashSet<>(lessonItemRepository.findSignIdsByLessonId(lessonId));
-        List<UUID> toAdd = signIds.stream().distinct().filter(id -> !already.contains(id)).toList();
+        // Mỗi từ chỉ thuộc một khoá: chặn cả ở đây chứ không chỉ ở ô tìm kiếm của CMS,
+        // nếu không gọi thẳng API (hay hai người soạn cùng lúc) vẫn lọt từ trùng.
+        Set<UUID> khoaKhac = new HashSet<>(
+                lessonItemRepository.findSignIdsUsedOutsideCourse(lesson.getCourse().getId()));
+
+        List<UUID> toAdd = chon.stream()
+                .filter(id -> !already.contains(id) && !khoaKhac.contains(id))
+                .toList();
+        int daCo = (int) chon.stream().filter(already::contains).count();
+        int oKhoaKhac = (int) chon.stream().filter(id -> !already.contains(id) && khoaKhac.contains(id)).count();
         if (toAdd.isEmpty()) {
-            return 0;
+            return Map.of("added", 0, "skipped", daCo, "usedElsewhere", oKhoaKhac);
         }
 
         List<Sign> signs = signRepository.findAllById(toAdd);
@@ -281,7 +291,7 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
                     .build());
         }
         lessonItemRepository.saveAll(items);
-        return items.size();
+        return Map.of("added", items.size(), "skipped", daCo, "usedElsewhere", oKhoaKhac);
     }
 
     @Override
