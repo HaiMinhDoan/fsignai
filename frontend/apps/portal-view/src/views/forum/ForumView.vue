@@ -95,7 +95,24 @@
             <span>{{ tomTatMedia(p) }}</span>
           </p>
           <div class="post-meta">
-            <span>{{ p.authorName }}</span>
+            <!-- Cả thẻ đã là một liên kết tới bài, không lồng <a> trong <a> được: tên tác giả là nút
+                 điều hướng riêng, chặn sự kiện để bấm vào tên không mở bài viết -->
+            <span
+              class="author-link"
+              role="link"
+              tabindex="0"
+              :aria-label="`Trang cá nhân của ${p.authorName}`"
+              @click.prevent.stop="openProfile(p.authorId)"
+              @keydown.enter.prevent.stop="openProfile(p.authorId)"
+            >
+              <UserAvatar
+                :name="p.authorName"
+                :avatar-url="p.authorAvatarUrl"
+                :video-url="p.authorAvatarVideoUrl"
+                :size="26"
+              />
+              <span>{{ p.authorName }}</span>
+            </span>
             <span>·</span>
             <span>{{ formatRelative(p.lastActivityAt) }}</span>
             <span class="spacer" />
@@ -111,6 +128,8 @@
 
 <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
+  import UserAvatar from '@/components/UserAvatar.vue';
   import SiIcon from '@/components/SiIcon.vue';
   import SignMediaComposer from '@/components/SignMediaComposer.vue';
   import {
@@ -123,6 +142,12 @@
   } from '@/api/forum';
 
   defineOptions({ name: 'ForumView' });
+
+  const router = useRouter();
+
+  function openProfile(userId: string) {
+    router.push(`/nguoi-dung/${userId}`);
+  }
 
   const categories = ref<ForumCategory[]>([]);
   const posts = ref<ForumPost[]>([]);
@@ -387,5 +412,18 @@
   }
   .post-meta .spacer {
     flex: 1;
+  }
+  .author-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: var(--sk-ink);
+    cursor: pointer;
+    border-radius: var(--sk-r-pill);
+  }
+  .author-link:hover {
+    color: var(--sk-blue-ink);
+    text-decoration: underline;
   }
 </style>

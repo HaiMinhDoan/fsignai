@@ -41,6 +41,8 @@ export interface ForumPost {
   authorId: string;
   authorName: string;
   authorAvatarUrl?: string;
+  /** Ảnh đại diện động của tác giả (video ≤ 5 giây) */
+  authorAvatarVideoUrl?: string;
   titleVi?: string;
   bodyMd?: string;
   /** Video ký hiệu dùng thay cho tiêu đề chữ */
@@ -68,6 +70,8 @@ export interface ForumComment {
   authorId: string;
   authorName: string;
   authorAvatarUrl?: string;
+  /** Ảnh đại diện động của tác giả (video ≤ 5 giây) */
+  authorAvatarVideoUrl?: string;
   bodyText?: string;
   media?: ForumMedia[];
   reactionCount: number;

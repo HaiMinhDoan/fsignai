@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './http';
+import type { PageResult } from './dictionary';
 
 export interface Plan {
   code: 'FREE' | 'PREMIUM';
@@ -43,3 +44,20 @@ export const mySubscriptionApi = () => apiGet<Subscription>('/payments/me');
 export const createOrderApi = (planCode: 'PREMIUM') => apiPost<PaymentOrder>('/payments/orders', { planCode });
 
 export const orderStatusApi = (id: string) => apiGet<PaymentOrder>(`/payments/orders/${id}`);
+
+/** Một dòng lịch sử giao dịch. Đơn chờ đã quá hạn được máy chủ trả về EXPIRED */
+export interface PaymentHistoryItem {
+  id: string;
+  planCode: string;
+  amount: number;
+  paidAmount?: number;
+  paymentCode: string;
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  durationDays?: number;
+  createdAt: string;
+  expiresAt: string;
+  paidAt?: string;
+}
+
+export const myPaymentHistoryApi = (page = 0, size = 10, status?: string) =>
+  apiGet<PageResult<PaymentHistoryItem>>('/payments/me/orders', { page, size, status });

@@ -37,6 +37,10 @@ public class UserProfileResponse {
     String email;
     Boolean emailVerified;
 
+    /** Ảnh đại diện động (video ≤ 5 giây); avatar là khung hình đầu của nó */
+    String avatarVideoUrl;
+    String bio;
+
     UserType userType;
     AccountKind accountKind;
     AgeRange ageRange;

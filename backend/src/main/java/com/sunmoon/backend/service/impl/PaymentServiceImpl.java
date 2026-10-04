@@ -3,7 +3,11 @@ package com.sunmoon.backend.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sunmoon.backend.configs.PaymentProperties;
+import com.sunmoon.backend.dto.response.PageResponse;
+import com.sunmoon.backend.dto.response.payment.PaymentHistoryResponse;
 import com.sunmoon.backend.dto.response.payment.PaymentOrderResponse;
+import com.sunmoon.backend.service.support.PaymentHistoryMapper;
+import org.springframework.data.domain.Pageable;
 import com.sunmoon.backend.entity.auth.User;
 import com.sunmoon.backend.entity.payment.PaymentOrder;
 import com.sunmoon.backend.entity.payment.SepayTransaction;
@@ -91,6 +95,16 @@ public class PaymentServiceImpl implements PaymentService {
             order.setUpdatedAt(OffsetDateTime.now());
         }
         return toResponse(order, PaymentOrder.PAID.equals(order.getStatus()) ? order.getUser().getPremiumUntil() : null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PaymentHistoryResponse> myHistory(UUID userId, String status, Pageable pageable) {
+        OffsetDateTime now = OffsetDateTime.now();
+        return PageResponse.of(
+                orderRepository.history(userId, null, blankToNull(status), PaymentHistoryMapper.MIN_TIME,
+                        PaymentHistoryMapper.MAX_TIME, now, pageable),
+                o -> PaymentHistoryMapper.toResponse(o, false, now));
     }
 
     // ==================== WEBHOOK ====================
@@ -238,6 +252,10 @@ public class PaymentServiceImpl implements PaymentService {
                 .paidAt(o.getPaidAt())
                 .premiumUntil(premiumUntil)
                 .build();
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim().toUpperCase();
     }
 
     private static String enc(String s) {

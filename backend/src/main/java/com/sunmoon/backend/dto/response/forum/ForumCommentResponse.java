@@ -24,6 +24,8 @@ public class ForumCommentResponse {
     UUID authorId;
     String authorName;
     String authorAvatarUrl;
+    /** Ảnh đại diện động của tác giả (video ≤ 5 giây), null nếu chỉ có ảnh tĩnh */
+    String authorAvatarVideoUrl;
 
     String bodyText;
 

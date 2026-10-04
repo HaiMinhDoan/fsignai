@@ -22,6 +22,8 @@ public interface ForumCommentRepository extends JpaRepository<ForumComment, UUID
 
     long countByPost_Id(UUID postId);
 
+    long countByAuthor_IdAndStatus(UUID authorId, com.sunmoon.backend.constant.enums.ForumCommentStatus status);
+
     @Modifying
     @Query("UPDATE ForumComment c SET c.reactionCount = c.reactionCount + :delta WHERE c.id = :id")
     void bumpReactionCount(@Param("id") UUID id, @Param("delta") int delta);

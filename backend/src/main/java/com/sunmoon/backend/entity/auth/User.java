@@ -54,6 +54,16 @@ public class User {
     @JoinColumn(name = "avatar_file_id")
     private FileAttachment avatarFile;
 
+    /** Ảnh đại diện động: video ≤ 5 giây phát lặp. Khi có, avatarFile là khung hình đầu của nó */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "avatar_video_file_id")
+    private FileAttachment avatarVideoFile;
+
+    /** Vài dòng giới thiệu hiện ở trang cá nhân */
+    @Size(max = 500)
+    @Column(name = "bio", length = 500)
+    private String bio;
+
     /** Gói Premium còn hiệu lực đến lúc nào. NULL hoặc đã qua = gói Free (xem SubscriptionService) */
     @Column(name = "premium_until")
     private java.time.OffsetDateTime premiumUntil;

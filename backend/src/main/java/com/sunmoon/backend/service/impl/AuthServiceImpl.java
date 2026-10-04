@@ -370,6 +370,8 @@ public class AuthServiceImpl implements AuthService {
                 .username(user.getEmail())
                 .realName(user.getFullName())
                 .avatar(user.getAvatarFile() == null ? null : user.getAvatarFile().getPublicUrl())
+                .avatarVideoUrl(user.getAvatarVideoFile() == null ? null : user.getAvatarVideoFile().getPublicUrl())
+                .bio(user.getBio())
                 .homePath(resolveHomePath(roleCodes))
                 .roles(roles)
                 .email(user.getEmail())

@@ -2,7 +2,7 @@ import type { AppRouteModule } from '@/router/types';
 
 import { LAYOUT } from '@/router/constant';
 
-/** Menu "Hệ thống": người dùng/vai trò, cài đặt, nhật ký audit */
+/** Menu "Hệ thống": người dùng/vai trò, giao dịch, cài đặt, nhật ký audit */
 const system: AppRouteModule = {
   path: '/system',
   name: 'System',
@@ -21,6 +21,15 @@ const system: AppRouteModule = {
       meta: {
         title: 'Người dùng & Vai trò',
         icon: 'ant-design:team-outlined',
+      },
+    },
+    {
+      path: 'payments',
+      name: 'PaymentManagement',
+      component: () => import('@/views/system/payment/index.vue'),
+      meta: {
+        title: 'Giao dịch',
+        icon: 'ant-design:transaction-outlined',
       },
     },
     {

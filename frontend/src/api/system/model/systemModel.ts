@@ -9,6 +9,10 @@ export interface UserAdminModel {
   emailVerified: boolean;
   fullName: string;
   avatarUrl?: string;
+  /** Ảnh đại diện động (video ≤ 5 giây) */
+  avatarVideoUrl?: string;
+  bio?: string;
+  premiumUntil?: string;
 
   accountKind: AccountKind;
   ageRange?: string;

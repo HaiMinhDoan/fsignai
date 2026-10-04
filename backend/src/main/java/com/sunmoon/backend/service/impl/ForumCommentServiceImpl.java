@@ -186,6 +186,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
                 .authorId(author.getId())
                 .authorName(author.getFullName())
                 .authorAvatarUrl(author.getAvatarFile() == null ? null : author.getAvatarFile().getPublicUrl())
+                .authorAvatarVideoUrl(author.getAvatarVideoFile() == null ? null : author.getAvatarVideoFile().getPublicUrl())
                 .bodyText(c.getBodyText())
                 .media(media == null ? List.of() : media)
                 .reactionCount(c.getReactionCount())

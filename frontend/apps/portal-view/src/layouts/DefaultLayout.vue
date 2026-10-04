@@ -80,10 +80,15 @@
           <RouterLink v-else to="/goi-dich-vu" class="plan-badge" title="Mở khoá kiểm tra, thư viện cử chỉ, AI chấm điểm">
             <SiIcon name="sparkles" :size="16" /> Nâng cấp
           </RouterLink>
-          <span class="user-chip">
-            <span class="user-avatar"><SiIcon name="user" :size="18" /></span>
+          <RouterLink to="/trang-ca-nhan" class="user-chip" title="Trang cá nhân của tôi">
+            <UserAvatar
+              :name="auth.user?.realName"
+              :avatar-url="auth.user?.avatar"
+              :video-url="auth.user?.avatarVideoUrl"
+              :size="32"
+            />
             <span class="user-name">{{ auth.user?.realName }}</span>
-          </span>
+          </RouterLink>
           <button class="icon-btn" type="button" title="Đăng xuất" @click="handleLogout">
             <SiIcon name="logout" :size="20" />
             <span class="si-visually-hidden">Đăng xuất</span>
@@ -136,6 +141,7 @@
   import SiIcon from '@/components/SiIcon.vue';
   import logoUrl from '@/assets/logo/fsignai-logo.png';
   import NotificationBell from '@/components/NotificationBell.vue';
+  import UserAvatar from '@/components/UserAvatar.vue';
 
   defineOptions({ name: 'DefaultLayout' });
 
@@ -403,16 +409,10 @@
     border-radius: var(--sk-r-pill);
     background: var(--sk-lavender-2);
     max-width: 180px;
+    text-decoration: none;
   }
-  .user-avatar {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--sk-amber-ink);
-    color: #fff;
-    flex-shrink: 0;
+  .user-chip:hover {
+    background: var(--sk-blue-100);
   }
   .user-name {
     font-size: 13px;

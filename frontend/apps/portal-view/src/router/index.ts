@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { trackPageView } from '@/utils/pageTracker';
 
 /**
  * Đường dẫn tiếng Việt không dấu.
@@ -110,6 +111,19 @@ const routes: RouteRecordRaw[] = [
       },
 
       {
+        path: 'trang-ca-nhan',
+        name: 'my-profile',
+        component: () => import('@/views/profile/ProfileView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: 'nguoi-dung/:id',
+        name: 'user-profile',
+        component: () => import('@/views/profile/ProfileView.vue'),
+        props: true,
+      },
+
+      {
         path: 'ba-me-thay-co',
         name: 'guardian-dashboard',
         component: () => import('@/views/guardian/GuardianDashboardView.vue'),
@@ -167,6 +181,11 @@ router.beforeEach(async (to) => {
     return { name: 'onboarding' };
   }
 
+  // Trang cá nhân của tôi, lịch sử giao dịch: chưa đăng nhập thì đi đăng nhập rồi quay lại đúng chỗ
+  if (to.meta.requiresAuth && !auth.isLoggedIn()) {
+    return { name: 'login', query: { redirect: to.fullPath } };
+  }
+
   // Trang thuộc gói Premium: chưa có gói thì đưa sang trang Gói dịch vụ, kèm tên tính năng để
   // giải thích vì sao. Chỉ là lớp giao diện — bắt đầu bài kiểm tra / chấm AI còn bị chặn ở máy chủ.
   // Lượt kiểm tra đang làm dở (/kiem-tra/:attemptId) không chặn: gói hết hạn giữa chừng vẫn nộp được.
@@ -176,4 +195,9 @@ router.beforeEach(async (to) => {
   }
 
   return true;
+});
+
+// Đếm lượt xem SAU khi điều hướng xong (bị chặn/chuyển hướng thì chỉ đếm trang cuối cùng tới được)
+router.afterEach((to, _from, failure) => {
+  if (!failure) trackPageView(to);
 });

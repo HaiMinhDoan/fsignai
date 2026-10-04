@@ -21,6 +21,11 @@ public class UserAdminResponse {
     Boolean emailVerified;
     String fullName;
     String avatarUrl;
+    String avatarVideoUrl;
+    String bio;
+
+    /** Hạn gói Premium; null = chưa từng mua */
+    OffsetDateTime premiumUntil;
 
     AccountKind accountKind;
     AgeRange ageRange;

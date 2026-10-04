@@ -36,6 +36,21 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, UUID> {
                                    @Param("categoryId") UUID categoryId,
                                    Pageable pageable);
 
+    /** Bài của một người, cho trang cá nhân. Người khác chỉ thấy PUBLISHED; chủ trang thấy cả bài bị ẩn */
+    @Query("""
+            SELECT p FROM ForumPost p
+            WHERE p.author.id = :authorId AND p.status IN :statuses
+            ORDER BY p.createdAt DESC
+            """)
+    Page<ForumPost> findByAuthor(@Param("authorId") UUID authorId,
+                                 @Param("statuses") java.util.Collection<ForumPostStatus> statuses,
+                                 Pageable pageable);
+
+    long countByAuthor_IdAndStatus(UUID authorId, ForumPostStatus status);
+
+    @Query("SELECT COALESCE(SUM(p.reactionCount), 0) FROM ForumPost p WHERE p.author.id = :authorId AND p.status = :status")
+    long sumReactionsByAuthor(@Param("authorId") UUID authorId, @Param("status") ForumPostStatus status);
+
     @Modifying
     @Query("UPDATE ForumPost p SET p.viewCount = p.viewCount + 1 WHERE p.id = :id")
     void incrementViewCount(@Param("id") UUID id);

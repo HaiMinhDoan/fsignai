@@ -17,6 +17,9 @@ public interface ForumPostService {
     /** Tác giả luôn xem được bài của mình dù trạng thái gì; người khác chỉ xem được bài PUBLISHED */
     ForumPostResponse detail(UUID id, UUID currentUserId, boolean bumpView);
 
+    /** Bài của một tác giả cho trang cá nhân; chủ trang thấy cả bài đang ẩn/chờ duyệt (trừ bài đã gỡ) */
+    PageResponse<ForumPostResponse> listByAuthor(UUID authorId, UUID currentUserId, Pageable pageable);
+
     ForumPostResponse create(UUID authorId, ForumPostRequest request);
 
     ForumPostResponse update(UUID authorId, UUID id, ForumPostRequest request);

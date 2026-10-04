@@ -15,7 +15,15 @@
         <!-- Tiêu đề ra hiệu bằng video: đặt ngay dưới dòng chữ thay thế -->
         <SignMediaGallery v-if="post.titleMedia" :media="[post.titleMedia]" size="small" />
         <div class="post-meta">
-          <span>{{ post.authorName }}</span>
+          <RouterLink :to="`/nguoi-dung/${post.authorId}`" class="author-link">
+            <UserAvatar
+              :name="post.authorName"
+              :avatar-url="post.authorAvatarUrl"
+              :video-url="post.authorAvatarVideoUrl"
+              :size="32"
+            />
+            <span>{{ post.authorName }}</span>
+          </RouterLink>
           <span>·</span>
           <span>{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</span>
         </div>
@@ -133,7 +141,8 @@
 
 <script lang="ts" setup>
   import { ref, computed, onMounted, defineComponent, h } from 'vue';
-  import { useRoute, useRouter } from 'vue-router';
+  import { RouterLink, useRoute, useRouter } from 'vue-router';
+  import UserAvatar from '@/components/UserAvatar.vue';
   import { useAuthStore } from '@/stores/auth';
   import SiIcon from '@/components/SiIcon.vue';
   import SignMediaComposer from '@/components/SignMediaComposer.vue';
@@ -163,7 +172,19 @@
       return () =>
         h('div', { class: 'comment-row' }, [
           h('div', { class: 'comment-meta' }, [
-            h('strong', props.comment.authorName),
+            h(
+              RouterLink,
+              { to: `/nguoi-dung/${props.comment.authorId}`, class: 'author-link' },
+              () => [
+                h(UserAvatar, {
+                  name: props.comment.authorName,
+                  avatarUrl: props.comment.authorAvatarUrl,
+                  videoUrl: props.comment.authorAvatarVideoUrl,
+                  size: 24,
+                }),
+                h('strong', props.comment.authorName),
+              ],
+            ),
             h('span', new Date(props.comment.createdAt).toLocaleString('vi-VN')),
           ]),
           props.comment.bodyText ? h('p', { class: 'comment-body' }, props.comment.bodyText) : null,
@@ -400,10 +421,24 @@
   }
   .post-meta {
     display: flex;
+    align-items: center;
     gap: 8px;
     color: var(--si-text-muted);
     font-size: 14px;
     margin-bottom: 16px;
+  }
+  /* Bấm vào tên hoặc ảnh tác giả để sang trang cá nhân của họ */
+  .post-page :deep(.author-link) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sk-ink);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .post-page :deep(.author-link:hover) {
+    color: var(--sk-blue-ink);
+    text-decoration: underline;
   }
   .post-body {
     white-space: pre-wrap;
@@ -535,6 +570,7 @@
   }
   .comment-item :deep(.comment-meta) {
     display: flex;
+    align-items: center;
     gap: 8px;
     font-size: 13px;
     color: var(--si-text-muted);

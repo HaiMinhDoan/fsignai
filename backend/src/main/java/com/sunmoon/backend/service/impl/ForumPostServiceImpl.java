@@ -58,6 +58,19 @@ public class ForumPostServiceImpl implements ForumPostService {
     }
 
     @Override
+    public PageResponse<ForumPostResponse> listByAuthor(UUID authorId, UUID currentUserId, Pageable pageable) {
+        boolean isMe = authorId.equals(currentUserId);
+        List<ForumPostStatus> statuses = isMe
+                ? List.of(ForumPostStatus.PUBLISHED, ForumPostStatus.PENDING_REVIEW, ForumPostStatus.HIDDEN, ForumPostStatus.DRAFT)
+                : List.of(ForumPostStatus.PUBLISHED);
+        Page<ForumPost> page = forumPostRepository.findByAuthor(authorId, statuses, pageable);
+        Set<UUID> likedIds = likedTargetIds(currentUserId, page.getContent().stream().map(ForumPost::getId).collect(Collectors.toSet()));
+        Map<UUID, List<MediaResponse>> media = forumMediaService
+                .ofPosts(page.getContent().stream().map(ForumPost::getId).toList());
+        return PageResponse.of(page, p -> toResponse(p, likedIds.contains(p.getId()), media.get(p.getId())));
+    }
+
+    @Override
     @Transactional
     public ForumPostResponse detail(UUID id, UUID currentUserId, boolean bumpView) {
         ForumPost post = forumPostRepository.findById(id)
@@ -262,6 +275,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .authorId(author.getId())
                 .authorName(author.getFullName())
                 .authorAvatarUrl(author.getAvatarFile() == null ? null : author.getAvatarFile().getPublicUrl())
+                .authorAvatarVideoUrl(author.getAvatarVideoFile() == null ? null : author.getAvatarVideoFile().getPublicUrl())
                 .titleVi(p.getTitleVi())
                 .titleMedia(forumMediaService.toResponse(p.getTitleMedia()))
                 .bodyMd(p.getBodyMd())

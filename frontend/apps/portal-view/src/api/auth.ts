@@ -11,6 +11,9 @@ export interface UserProfile {
   username: string;
   realName: string;
   avatar?: string;
+  /** Ảnh đại diện động (video ≤ 5 giây); avatar là khung hình đầu của nó */
+  avatarVideoUrl?: string;
+  bio?: string;
   roles: RoleInfo[];
 
   email: string;

@@ -5,7 +5,9 @@ import com.sunmoon.backend.constant.enums.RoleType;
 import com.sunmoon.backend.customizeanotations.RequireAuth;
 import com.sunmoon.backend.dto.AuthInfo;
 import com.sunmoon.backend.dto.request.payment.CreateOrderRequest;
+import com.sunmoon.backend.dto.response.PageResponse;
 import com.sunmoon.backend.dto.response.ResponseData;
+import com.sunmoon.backend.dto.response.payment.PaymentHistoryResponse;
 import com.sunmoon.backend.dto.response.payment.PaymentOrderResponse;
 import com.sunmoon.backend.dto.response.payment.PlanResponse;
 import com.sunmoon.backend.dto.response.payment.SubscriptionResponse;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -60,6 +63,17 @@ public class PaymentController {
     @GetMapping("/payments/orders/{id}")
     public ResponseEntity<ResponseData<PaymentOrderResponse>> getOrder(@PathVariable UUID id) {
         return ok(paymentService.getOrder(SecurityContextHolder.getAuthInfo().getId(), id), "PAYMENT_ORDER_SUCCESS");
+    }
+
+    @Operation(summary = "Lịch sử giao dịch của tôi", description = "Lọc theo status: PENDING | PAID | EXPIRED")
+    @RequireAuth(roles = {RoleType.ALL})
+    @GetMapping("/payments/me/orders")
+    public ResponseEntity<ResponseData<PageResponse<PaymentHistoryResponse>>> myOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        return ok(paymentService.myHistory(SecurityContextHolder.getAuthInfo().getId(), status,
+                PageRequest.of(page, Math.min(size, 50))), "PAYMENT_HISTORY_SUCCESS");
     }
 
     private <T> ResponseEntity<ResponseData<T>> ok(T data, String messageCode) {

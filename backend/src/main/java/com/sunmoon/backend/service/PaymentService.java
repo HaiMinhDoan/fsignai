@@ -1,6 +1,9 @@
 package com.sunmoon.backend.service;
 
+import com.sunmoon.backend.dto.response.PageResponse;
+import com.sunmoon.backend.dto.response.payment.PaymentHistoryResponse;
 import com.sunmoon.backend.dto.response.payment.PaymentOrderResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
@@ -15,6 +18,9 @@ public interface PaymentService {
     PaymentOrderResponse createOrder(UUID userId, String planCode);
 
     PaymentOrderResponse getOrder(UUID userId, UUID orderId);
+
+    /** Lịch sử giao dịch của chính người học, mới nhất trước */
+    PageResponse<PaymentHistoryResponse> myHistory(UUID userId, String status, Pageable pageable);
 
     /**
      * Xử lý một lượt webhook đã qua xác thực. Không ném lỗi với giao dịch không khớp đơn nào:
