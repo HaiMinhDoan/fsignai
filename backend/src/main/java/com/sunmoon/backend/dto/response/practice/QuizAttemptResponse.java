@@ -26,6 +26,9 @@ public class QuizAttemptResponse {
     UUID blueprintId;
     String blueprintTitleVi;
 
+    /** Tên hiển thị của đề tự tạo, ví dụ "Đề tự tạo · Gia đình, Động vật" */
+    String customTitleVi;
+
     Region region;
     QuizAttemptStatus status;
 

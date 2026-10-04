@@ -48,6 +48,10 @@
       <nav class="nav" aria-label="Điều hướng chính">
         <RouterLink v-for="item in nav" :key="item.to" :to="item.to" class="nav-link">
           {{ item.label }}
+          <span v-if="item.premium && !auth.isPremium()" class="nav-lock" title="Thuộc gói Premium">
+            <SiIcon name="lock" :size="14" />
+            <span class="si-visually-hidden">(gói Premium)</span>
+          </span>
         </RouterLink>
       </nav>
 
@@ -65,6 +69,17 @@
             <span class="si-visually-hidden">Thư viện của tôi</span>
           </RouterLink>
           <NotificationBell />
+          <RouterLink
+            v-if="auth.isPremium()"
+            to="/goi-dich-vu"
+            class="plan-badge plan-badge--premium"
+            title="Gói Premium của bạn"
+          >
+            <SiIcon name="sparkles" :size="16" /> Premium
+          </RouterLink>
+          <RouterLink v-else to="/goi-dich-vu" class="plan-badge" title="Mở khoá kiểm tra, thư viện cử chỉ, AI chấm điểm">
+            <SiIcon name="sparkles" :size="16" /> Nâng cấp
+          </RouterLink>
           <span class="user-chip">
             <span class="user-avatar"><SiIcon name="user" :size="18" /></span>
             <span class="user-name">{{ auth.user?.realName }}</span>
@@ -127,12 +142,12 @@
   const BASE_NAV = [
     { to: '/', label: 'Trang Chủ' },
     { to: '/khoa-hoc', label: 'Khoá Học' },
-    { to: '/phong-luyen', label: 'Phòng Luyện Ký Hiệu' },
     { to: '/on-tu', label: 'Ôn Từ' },
-    { to: '/kiem-tra', label: 'Kiểm Tra' },
+    { to: '/kiem-tra', label: 'Kiểm Tra', premium: true },
     { to: '/goc-tro-choi', label: 'Góc Trò Chơi' },
-    { to: '/tu-dien', label: 'Thư Viện Cử Chỉ' },
+    { to: '/tu-dien', label: 'Thư Viện Cử Chỉ', premium: true },
     { to: '/ba-me-thay-co', label: 'Dành Cho Ba Mẹ & Thầy Cô' },
+    { to: '/dien-dan', label: 'Diễn Đàn' },
   ];
   const RATES = [0.5, 0.75, 1];
 
@@ -141,13 +156,9 @@
   const statsStore = useLearnerStatsStore();
   const router = useRouter();
 
-  // Diễn đàn ẩn với tài khoản trẻ em (CHILD) - chỉ ẩn menu, backend vẫn cho phép
-  // truy cập trực tiếp nếu biết đường dẫn, đây là quyết định sản phẩm đã chốt.
-  const nav = computed(() =>
-    auth.user?.accountKind === 'CHILD'
-      ? BASE_NAV
-      : [...BASE_NAV, { to: '/dien-dan', label: 'Diễn Đàn' }],
-  );
+  // Diễn đàn mở cho MỌI tài khoản (2026-10-04, người dùng chốt) - trước đây ẩn với
+  // tài khoản trẻ em. Kiểm duyệt vẫn là hậu kiểm: bài vi phạm bị báo cáo rồi gỡ.
+  const nav = computed(() => BASE_NAV);
 
   // Tải số liệu ngay khi biết người học đã đăng nhập. Theo dõi trạng thái thay vì
   // gọi trong onMounted vì phiên đăng nhập được khôi phục BẤT ĐỒNG BỘ ở
@@ -355,6 +366,32 @@
   .stat-pill--star {
     background: var(--sk-sky);
     color: var(--sk-blue-ink);
+  }
+
+  .nav-lock {
+    display: inline-flex;
+    margin-left: 4px;
+    opacity: 0.75;
+  }
+
+  .plan-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: var(--sk-r-pill);
+    background: var(--sk-amber);
+    color: #2a1700; /* chữ tối cố định: nền cam giữ nguyên ở chế độ tối */
+    font-family: var(--sk-font-head);
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .plan-badge--premium {
+    background: var(--sk-mint);
+    color: var(--sk-green-ink);
   }
 
   .user-chip {

@@ -213,8 +213,9 @@
       const result = await signSearchApi({
         keyword: keyword.value || undefined,
         topicId: topicId.value,
-        // Mỗi từ chỉ thuộc một khoá: từ đã nằm ở khoá khác không hiện ra để chọn nữa
-        hideUsedOutsideCourseId: courseId.value,
+        // Mỗi từ chỉ nằm ở đúng một bài: từ đã ở bài khác (cùng khoá hay khoá khác)
+        // không hiện ra để chọn nữa
+        hideUsedOutsideLessonId: lessonId.value,
         page: 0,
         size: 50,
       } as any);
@@ -236,6 +237,7 @@
       // Backend bỏ qua từ đã có sẵn và từ thuộc khoá khác; nói rõ để người dùng không tưởng là lỗi
       const boQua = [
         result.skipped ? `${result.skipped} từ đã có trong bài` : '',
+        result.usedInCourse ? `${result.usedInCourse} từ đã nằm ở bài khác của khoá này` : '',
         result.usedElsewhere ? `${result.usedElsewhere} từ đã thuộc khoá học khác` : '',
       ].filter(Boolean);
       createMessage.success(`Đã thêm ${result.added} từ` + (boQua.length ? `, bỏ qua ${boQua.join(', ')}` : ''));

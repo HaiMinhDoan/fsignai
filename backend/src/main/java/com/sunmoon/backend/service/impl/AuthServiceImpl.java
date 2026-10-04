@@ -383,6 +383,12 @@ public class AuthServiceImpl implements AuthService {
                 .vslRoleStatus(user.getVslRoleStatus())
                 .status(user.getStatus())
                 .onboardingCompleted(onboarded)
+                .premiumUntil(user.getPremiumUntil())
+                // Nhân sự nội bộ dùng mọi tính năng — cùng danh sách với SubscriptionGuard.STAFF
+                .premium(roleCodes.stream().anyMatch(java.util.Set.of(
+                        "SYSTEM_ADMIN", "CONTENT_EDITOR", "MODERATOR", "VSL_REVIEWER")::contains)
+                        || (user.getPremiumUntil() != null
+                            && user.getPremiumUntil().isAfter(java.time.OffsetDateTime.now())))
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .build();

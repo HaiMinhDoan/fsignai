@@ -11,9 +11,6 @@ Tất cả là **bản dựng node (node render) ở 2×** kích thước khung 
 |---|---|---|
 | `home-camera-teaser.png` | 462×260 | Trang chủ — thẻ mời mở camera |
 | `video-card-1..3.png` | 389×219 | Trang chủ — 3 thẻ video cử chỉ |
-| `practice-teacher-pane.png` | 560×315 | Phòng luyện — khung mẫu bên trái |
-| `practice-mirror-pane.png` | 560×315 | Phòng luyện — khung gương bên phải |
-| `step-1..3.png` | 357×128 | Phòng luyện — thẻ hướng dẫn từng bước |
 | `game-target-bird/cat/dog.png` | 48×48 | Góc trò chơi — mục tiêu |
 | `game-gesture-looper.png` | 391×176 | Góc trò chơi — khung xem lặp |
 | `leader-avatar-1..3.png` | 44×44 | Góc trò chơi — bảng xếp hạng |

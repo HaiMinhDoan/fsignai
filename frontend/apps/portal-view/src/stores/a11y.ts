@@ -5,7 +5,7 @@ import { ref, watch } from 'vue';
  * Cài đặt trợ năng của thanh trên cùng (Figma: Top Accessibility Quick Toolbar).
  *
  * Để ở store chứ không ở từng màn hình vì hai lựa chọn này phải theo người học đi
- * khắp nơi: bật phụ đề to ở trang chủ thì vào phòng luyện vẫn phải to, chỉnh
+ * khắp nơi: bật phụ đề to ở trang chủ thì vào trang từng từ vẫn phải to, chỉnh
  * tốc độ 0.5x thì mọi video sau đó đều chạy 0.5x. Bắt người học chỉnh lại ở từng
  * trang là đánh mất ý nghĩa của trợ năng.
  */

@@ -5,3 +5,6 @@ __pycache__/
 # .env
 .env.build
 .env.local
+
+# Du lieu ca nhan that (ho so sinh vien: CCCD, dia chi, so dien thoai) - TUYET DOI khong dua len git
+user_data/

@@ -5,6 +5,8 @@ import com.sunmoon.backend.constant.enums.FilterLogicType;
 import com.sunmoon.backend.constant.enums.FilterOperation;
 import com.sunmoon.backend.constant.enums.RoleType;
 import com.sunmoon.backend.constant.enums.SignLevel;
+import com.sunmoon.backend.constant.enums.SortDirection;
+import com.sunmoon.backend.dto.request.SortCriteria;
 import com.sunmoon.backend.customizeanotations.RequireAuth;
 import com.sunmoon.backend.dto.AuthInfo;
 import com.sunmoon.backend.dto.request.BaseFilterRequest;
@@ -74,8 +76,14 @@ public class CatalogPublicController {
         if (topicId != null) filters.add(eq("topic.id", topicId));
         if (level != null) filters.add(eq("level", level));
 
+        // Không truyền thứ tự thì CSDL trả theo trình tự nó tự chọn - "Bài 7" có thể đứng
+        // trước "Bài 2". Xếp theo thứ tự biên tập viên đặt, hoà thì khoá tạo trước đứng trước.
         PageResponse<CourseResponse> result = courseService.search(BaseFilterRequest.builder()
-                .filters(filters).page(page).size(size).build());
+                .filters(filters)
+                .sorts(List.of(
+                        SortCriteria.builder().fieldName("displayOrder").direction(SortDirection.ASC).build(),
+                        SortCriteria.builder().fieldName("createdAt").direction(SortDirection.ASC).build()))
+                .page(page).size(size).build());
         return ok(result, "COURSE_LIST_SUCCESS");
     }
 

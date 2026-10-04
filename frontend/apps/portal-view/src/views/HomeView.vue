@@ -26,7 +26,7 @@
 
         <div class="hero-buttons">
           <RouterLink
-            :to="challenge ? { name: 'practice-sign', params: { id: challenge.id } } : '/phong-luyen'"
+            :to="challenge ? { name: 'dictionary-detail', params: { id: challenge.id } } : '/tu-dien'"
             class="btn btn--amber btn--tall"
           >
             <SiIcon name="play" :size="22" />
@@ -161,7 +161,7 @@
           <small>(1/2 bước)</small>
         </span>
         <RouterLink
-          :to="challenge ? { name: 'practice-sign', params: { id: challenge.id } } : '/phong-luyen'"
+          :to="challenge ? { name: 'dictionary-detail', params: { id: challenge.id } } : '/tu-dien'"
           class="btn btn--brown"
         >
           <SiIcon name="play" :size="17" />
@@ -183,13 +183,16 @@
       </p>
       <div class="camera-shot">
         <img :src="cameraTeaser" alt="Màn hình gương soi khi bạn luyện ký hiệu trước camera" />
-        <RouterLink to="/phong-luyen" class="camera-play" aria-label="Mở gương luyện tập">
+        <RouterLink
+          :to="challenge ? { name: 'dictionary-detail', params: { id: challenge.id } } : '/tu-dien'"
+          class="camera-play"
+          aria-label="Mở gương luyện tập"
+        >
           <SiIcon name="camera" :size="22" />
         </RouterLink>
       </div>
-      <!-- Nói thẳng là chưa chấm điểm. Figma ghi "AI chính xác 98%" nhưng hứa
-           thế khi chưa có gì chạy là mất lòng tin ngay lần thử đầu -->
-      <p class="camera-note">Máy chấm điểm động tác sẽ bật ở bản sau.</p>
+      <!-- Không hứa "AI chính xác 98%" như Figma: chỉ nói đúng điều đang có -->
+      <p class="camera-note">Mở một từ bất kỳ để bật gương và nhờ AI chấm điểm động tác.</p>
     </aside>
   </section>
 
@@ -328,7 +331,7 @@
               <span>Xem lại chậm</span>
             </button>
             <RouterLink
-              :to="{ name: 'practice-sign', params: { id: item.sign.id } }"
+              :to="{ name: 'dictionary-detail', params: { id: item.sign.id } }"
               class="text-btn"
             >
               <SiIcon name="hand" :size="14" />

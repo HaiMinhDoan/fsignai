@@ -25,6 +25,9 @@ public interface QuizAttemptService {
      */
     QuizAttemptResponse startFromBlueprint(UUID userId, UUID blueprintId, Region region);
 
+    /** Người học tự tạo đề: topicIds rỗng = tất cả chủ đề */
+    QuizAttemptResponse startCustom(UUID userId, com.sunmoon.backend.dto.request.practice.CustomQuizRequest request);
+
     /** Xem lại một lượt thi — của chính mình, dùng để tiếp tục làm dở hoặc xem lại kết quả */
     QuizAttemptResponse getAttempt(UUID userId, UUID attemptId);
 

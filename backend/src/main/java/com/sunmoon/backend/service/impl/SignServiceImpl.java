@@ -107,8 +107,10 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
         addEquals(filters, "isPublished", request.getIsPublished());
         addEquals(filters, "primaryTopic.id", request.getTopicId());
 
-        if (request.getHideUsedOutsideCourseId() != null) {
-            List<UUID> daDung = lessonItemRepository.findSignIdsUsedOutsideCourse(request.getHideUsedOutsideCourseId());
+        if (request.getHideUsedOutsideLessonId() != null || request.getHideUsedOutsideCourseId() != null) {
+            List<UUID> daDung = request.getHideUsedOutsideLessonId() != null
+                    ? lessonItemRepository.findSignIdsUsedOutsideLesson(request.getHideUsedOutsideLessonId())
+                    : lessonItemRepository.findSignIdsUsedOutsideCourse(request.getHideUsedOutsideCourseId());
             if (!daDung.isEmpty()) {
                 filters.add(FilterCriteria.builder()
                         .fieldName("id")

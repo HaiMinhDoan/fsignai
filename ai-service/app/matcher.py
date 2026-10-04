@@ -30,6 +30,14 @@ VEL_GAIN = 6.0
 # Băng Sakoe-Chiba: cho phép lệch pha tối đa ±BAND bước trên chuỗi 32 bước
 BAND = 10
 
+# Bù độ lệch vị trí TỔNG THỂ trước khi so vị trí (2026-10-04).
+# 19 lượt chấm của người học thật: điểm hình tay 74–100 nhưng điểm vị trí gần như luôn < 20.
+# Ngồi trước webcam, cả người dịch lên/xuống/ngang so với người mẫu đứng quay video — mọi cổ tay
+# lệch cùng một đoạn và bị phạt ở MỌI khung hình. Bù tối đa MAX_OFFSET độ rộng vai: hết phạt oan vì
+# ngồi lệch, vẫn giữ khác biệt giữa ký hiệu ở trán và ở ngực (cách nhau > 0,5). Xem tools/eval_offset.py.
+OFFSET_COMPENSATION = True
+MAX_OFFSET = 0.25
+
 # Hằng số hiệu chỉnh thang đo (tools/calibrate.py). Nhân vào khoảng cách thô.
 #
 # K_TOTAL: đo trên 60 video từ điển thật (tools/calibrate.py) — người học giả lập (đổi tốc độ, tỉ lệ,
@@ -137,11 +145,37 @@ def _dtw_path(cost: np.ndarray, band: int):
     return np.array(path)
 
 
+def _global_offset(learner: np.ndarray, exemplar: np.ndarray, path: np.ndarray) -> np.ndarray:
+    """Độ lệch (dx, dy) chung của cả người, đo bằng trung vị trên các cặp khung cùng giơ tay, có chặn."""
+    ii, jj = path[:, 0], path[:, 1]
+    diffs = []
+    for h, sl in enumerate((LOC_L, LOC_R)):
+        m = (learner[ii, PRES][:, h] * exemplar[jj, PRES][:, h]) > 0.5
+        if m.any():
+            diffs.append(exemplar[jj[m], sl] - learner[ii[m], sl])
+    if not diffs:
+        return np.zeros(2)
+    return np.clip(np.median(np.concatenate(diffs), axis=0), -MAX_OFFSET, MAX_OFFSET)
+
+
+def _shift(f: np.ndarray, off: np.ndarray) -> np.ndarray:
+    g = f.copy()
+    for sl in (LOC_L, LOC_R):
+        g[:, sl] += off
+    return g
+
+
 def compare(learner: np.ndarray, exemplar: np.ndarray) -> tuple[dict, np.ndarray]:
     """Khoảng cách thô giữa hai chuỗi đã chuẩn hoá. Trả (các thành phần, đường DTW)."""
     S, L, V, P = _frame_costs(learner, exemplar)
     cost = W_SHAPE * S + W_LOC * L + W_VEL * V + W_PRES * P
     path = _dtw_path(cost, BAND)
+    if OFFSET_COMPENSATION:
+        # Lượt 2: dời cả người học về đúng chỗ người mẫu (có chặn) rồi so lại
+        learner = _shift(learner, _global_offset(learner, exemplar, path))
+        S, L, V, P = _frame_costs(learner, exemplar)
+        cost = W_SHAPE * S + W_LOC * L + W_VEL * V + W_PRES * P
+        path = _dtw_path(cost, BAND)
     ii, jj = path[:, 0], path[:, 1]
     comp = {
         "shape": float(S[ii, jj].mean()),

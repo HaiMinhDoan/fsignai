@@ -25,6 +25,10 @@ export interface UserProfile {
   vslRoleStatus?: string;
   status?: string;
   onboardingCompleted?: boolean;
+  /** Dùng được tính năng Premium không (còn hạn, hoặc là nhân sự nội bộ) */
+  premium?: boolean;
+  /** Hạn gói Premium; trống = chưa từng mua */
+  premiumUntil?: string;
 }
 
 export interface AuthTokenResult {

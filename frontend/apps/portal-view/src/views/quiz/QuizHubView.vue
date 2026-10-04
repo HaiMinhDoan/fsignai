@@ -5,6 +5,54 @@
       <p class="hub-sub">Ôn lại từ đã học và xem mình nhớ được bao nhiêu</p>
     </header>
 
+    <!-- Tự tạo đề: chọn "Tất cả" hoặc vài chủ đề muốn ôn, rồi chọn số câu -->
+    <section class="custom-quiz" aria-labelledby="custom-heading">
+      <h2 id="custom-heading"><SiIcon name="sparkles" :size="22" /> Tự tạo đề kiểm tra</h2>
+      <p class="custom-sub">Chọn chủ đề muốn kiểm tra — hoặc để "Tất cả chủ đề" để ôn toàn bộ.</p>
+
+      <div class="topic-pills">
+        <button
+          type="button"
+          class="pill"
+          :class="{ 'is-active': chonChuDe.length === 0 }"
+          :aria-pressed="chonChuDe.length === 0"
+          @click="chonChuDe = []"
+        >
+          Tất cả chủ đề
+        </button>
+        <button
+          v-for="t in topics"
+          :key="`c-${t.id}`"
+          type="button"
+          class="pill"
+          :class="{ 'is-active': chonChuDe.includes(t.id) }"
+          :aria-pressed="chonChuDe.includes(t.id)"
+          @click="doiChuDe(t.id)"
+        >
+          {{ t.nameVi }}
+        </button>
+      </div>
+
+      <div class="custom-row">
+        <span class="custom-label">Số câu:</span>
+        <button
+          v-for="n in [10, 15, 20]"
+          :key="n"
+          type="button"
+          class="pill pill--sm"
+          :class="{ 'is-active': soCau === n }"
+          @click="soCau = n"
+        >
+          {{ n }} câu
+        </button>
+        <button type="button" class="btn-start" :disabled="starting" @click="startCustom">
+          <SiIcon name="play" :size="18" />
+          <span>{{ starting ? 'Đang tạo đề…' : 'Bắt đầu làm bài' }}</span>
+        </button>
+      </div>
+      <p v-if="customError" class="error-text">{{ customError }}</p>
+    </section>
+
     <div v-if="topics.length" class="topic-pills">
       <button
         type="button"
@@ -85,7 +133,15 @@
   import { ref, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import SiIcon from '@/components/SiIcon.vue';
-  import { quizzesApi, quizBlueprintsApi, startAttemptFromQuizApi, startAttemptFromBlueprintApi, type QuizSummary, type QuizBlueprintSummary } from '@/api/quiz';
+  import {
+    quizzesApi,
+    quizBlueprintsApi,
+    startAttemptFromQuizApi,
+    startAttemptFromBlueprintApi,
+    startCustomAttemptApi,
+    type QuizSummary,
+    type QuizBlueprintSummary,
+  } from '@/api/quiz';
   import { topicOptionsApi } from '@/api/dictionary';
   import type { TopicRef } from '@/api/dictionary';
 
@@ -101,6 +157,30 @@
   const error = ref('');
   const starting = ref(false);
   const startError = ref('');
+
+  // Tự tạo đề: mảng rỗng nghĩa là "Tất cả chủ đề"
+  const chonChuDe = ref<string[]>([]);
+  const soCau = ref(10);
+  const customError = ref('');
+
+  function doiChuDe(id: string) {
+    chonChuDe.value = chonChuDe.value.includes(id)
+      ? chonChuDe.value.filter((x) => x !== id)
+      : [...chonChuDe.value, id];
+  }
+
+  async function startCustom() {
+    customError.value = '';
+    starting.value = true;
+    try {
+      const attempt = await startCustomAttemptApi(chonChuDe.value, soCau.value);
+      router.push(`/kiem-tra/${attempt.id}`);
+    } catch (e) {
+      customError.value = (e as Error).message;
+    } finally {
+      starting.value = false;
+    }
+  }
 
   async function loadQuizzes() {
     loading.value = true;
@@ -277,5 +357,57 @@
   .btn-primary:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .custom-quiz {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px 24px;
+    margin-bottom: 8px;
+    border-radius: var(--sk-r-card, 24px);
+    background: var(--sk-surface, #fff);
+    box-shadow: var(--sk-shadow-card);
+  }
+  .custom-quiz h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  .custom-sub {
+    margin: 0;
+    color: var(--sk-brown);
+  }
+  .custom-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .custom-label {
+    font-weight: 700;
+  }
+  .pill--sm {
+    padding: 6px 14px;
+  }
+  .btn-start {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    min-height: var(--sk-tap, 48px);
+    padding: 0 22px;
+    border: none;
+    border-radius: var(--sk-r-pill, 999px);
+    background: var(--sk-amber);
+    color: var(--sk-brown-dark);
+    font-family: var(--sk-font-head);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-start:disabled {
+    opacity: 0.6;
+    cursor: wait;
   }
 </style>

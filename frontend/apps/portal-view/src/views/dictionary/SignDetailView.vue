@@ -1,5 +1,5 @@
 <template>
-  <p v-if="loading" class="hint">Đang mở phòng luyện tập…</p>
+  <p v-if="loading" class="hint">Đang mở từ…</p>
   <p v-else-if="error" class="error" role="alert">{{ error }}</p>
 
   <article v-else-if="sign" class="detail">
@@ -170,8 +170,12 @@
       </div>
     </section>
 
+    <SignStepsSection :sign-id="sign.id" @pick="xemChamBuoc" />
+
+    <!-- descriptionVi trong từ điển Bộ GD&ĐT là NGHĨA của từ, không phải cách ra hiệu —
+         nhãn cũ "Cách làm ký hiệu này" gây hiểu nhầm khi đứng cạnh các bước thực hiện -->
     <section v-if="sign.descriptionVi" class="how-to">
-      <h2>Cách làm ký hiệu này</h2>
+      <h2>Nghĩa của từ</h2>
       <p>{{ sign.descriptionVi }}</p>
     </section>
   </article>
@@ -194,6 +198,7 @@
   import ConfettiBurst from '@/components/ConfettiBurst.vue';
   import MascotWave from '@/components/MascotWave.vue';
   import SiIcon from '@/components/SiIcon.vue';
+  import SignStepsSection from '@/components/SignStepsSection.vue';
 
   defineOptions({ name: 'SignDetailView' });
 
@@ -312,6 +317,13 @@
     if (!el) return;
     el.currentTime = 0;
     void el.play();
+  }
+
+  /** Chạm vào một bước: phát lại mẫu ở nửa tốc độ để nhìn kỹ bước đó, rồi cuộn lên video */
+  function xemChamBuoc() {
+    setRate(0.5);
+    replay();
+    sampleVideo.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   async function toggleMirror() {

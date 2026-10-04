@@ -253,7 +253,7 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
     @Transactional
     public Map<String, Integer> addSigns(UUID lessonId, List<UUID> signIds) {
         if (signIds == null || signIds.isEmpty()) {
-            return Map.of("added", 0, "skipped", 0, "usedElsewhere", 0);
+            return Map.of("added", 0, "skipped", 0, "usedInCourse", 0, "usedElsewhere", 0);
         }
         Lesson lesson = findLesson(lessonId);
         List<UUID> chon = signIds.stream().distinct().toList();
@@ -265,14 +265,19 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
         // nếu không gọi thẳng API (hay hai người soạn cùng lúc) vẫn lọt từ trùng.
         Set<UUID> khoaKhac = new HashSet<>(
                 lessonItemRepository.findSignIdsUsedOutsideCourse(lesson.getCourse().getId()));
+        // Trong cùng một khoá cũng không cho lặp giữa các bài: người học đi hết khoá
+        // sẽ gặp lại đúng từ đó như thể là bài mới
+        Set<UUID> baiKhac = new HashSet<>(lessonItemRepository.findSignIdsUsedOutsideLesson(lessonId));
 
         List<UUID> toAdd = chon.stream()
-                .filter(id -> !already.contains(id) && !khoaKhac.contains(id))
+                .filter(id -> !already.contains(id) && !baiKhac.contains(id))
                 .toList();
         int daCo = (int) chon.stream().filter(already::contains).count();
         int oKhoaKhac = (int) chon.stream().filter(id -> !already.contains(id) && khoaKhac.contains(id)).count();
+        int oBaiKhacCungKhoa = (int) chon.stream()
+                .filter(id -> !already.contains(id) && baiKhac.contains(id) && !khoaKhac.contains(id)).count();
         if (toAdd.isEmpty()) {
-            return Map.of("added", 0, "skipped", daCo, "usedElsewhere", oKhoaKhac);
+            return Map.of("added", 0, "skipped", daCo, "usedInCourse", oBaiKhacCungKhoa, "usedElsewhere", oKhoaKhac);
         }
 
         List<Sign> signs = signRepository.findAllById(toAdd);
@@ -291,7 +296,8 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
                     .build());
         }
         lessonItemRepository.saveAll(items);
-        return Map.of("added", items.size(), "skipped", daCo, "usedElsewhere", oKhoaKhac);
+        return Map.of("added", items.size(), "skipped", daCo,
+                "usedInCourse", oBaiKhacCungKhoa, "usedElsewhere", oKhoaKhac);
     }
 
     @Override

@@ -49,8 +49,9 @@ public interface LessonService extends BaseService<Lesson, UUID> {
      * @return số từ thực sự được thêm
      */
     /**
-     * Thêm từ vào bài. Trả về {added, skipped, usedElsewhere}: skipped là từ đã có
-     * sẵn trong chính bài này, usedElsewhere là từ đã thuộc một khoá học khác.
+     * Thêm từ vào bài. Trả về {added, skipped, usedInCourse, usedElsewhere}:
+     * skipped = đã có sẵn trong chính bài này, usedInCourse = đã ở một bài khác
+     * của cùng khoá, usedElsewhere = đã thuộc một khoá học khác.
      */
     java.util.Map<String, Integer> addSigns(UUID lessonId, List<UUID> signIds);
 

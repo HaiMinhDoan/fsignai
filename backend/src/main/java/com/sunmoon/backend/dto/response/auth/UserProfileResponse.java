@@ -51,6 +51,12 @@ public class UserProfileResponse {
     /** Da tra loi 4 cau onboarding chua - frontend dung de dieu huong */
     Boolean onboardingCompleted;
 
+    /** Có quyền dùng tính năng Premium không (đang còn hạn, hoặc là nhân sự nội bộ) */
+    Boolean premium;
+
+    /** Hạn gói Premium; null = chưa từng mua */
+    java.time.OffsetDateTime premiumUntil;
+
     OffsetDateTime lastLoginAt;
     OffsetDateTime createdAt;
 

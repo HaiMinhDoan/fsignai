@@ -19,6 +19,9 @@ public interface LessonItemRepository
 
     boolean existsByLessonIdAndSignId(UUID lessonId, UUID signId);
 
+    /** Đề này có nằm trong một bài học không — bài kiểm tra trong khoá học thuộc gói Free */
+    boolean existsByQuizId(UUID quizId);
+
     void deleteAllByLessonId(UUID lessonId);
 
     @Query("SELECT COALESCE(MAX(i.displayOrder), -1) + 1 FROM LessonItem i WHERE i.lesson.id = :lessonId")
@@ -39,6 +42,18 @@ public interface LessonItemRepository
             WHERE i.sign.id IS NOT NULL AND i.lesson.course.id <> :courseId
             """)
     List<UUID> findSignIdsUsedOutsideCourse(UUID courseId);
+
+    /**
+     * Từ đã nằm ở một bài KHÁC (trong cùng khoá hay khoá khác đều tính).
+     *
+     * Quy ước: mỗi từ chỉ nằm ở đúng một bài trong toàn hệ thống — không lặp giữa
+     * các khoá, cũng không lặp giữa các bài của cùng một khoá.
+     */
+    @Query("""
+            SELECT DISTINCT i.sign.id FROM LessonItem i
+            WHERE i.sign.id IS NOT NULL AND i.lesson.id <> :lessonId
+            """)
+    List<UUID> findSignIdsUsedOutsideLesson(UUID lessonId);
 
     /** Mọi từ đã có mặt trong bất kỳ khoá nào - dùng khi sinh khoá tự động */
     @Query("SELECT DISTINCT i.sign.id FROM LessonItem i WHERE i.sign.id IS NOT NULL")

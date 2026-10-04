@@ -29,6 +29,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AiCheckController {
 
+    private final com.sunmoon.backend.service.support.SubscriptionGuard subscriptionGuard;
+
     private final AiCheckService aiCheckService;
 
     @Operation(summary = "Từ này chấm điểm được chưa?",
@@ -44,6 +46,7 @@ public class AiCheckController {
     @RequireAuth(roles = {RoleType.ALL})
     @PostMapping("/verify")
     public ResponseEntity<ResponseData<AiVerifyResponse>> verify(@Valid @RequestBody AiVerifyRequest request) {
+        subscriptionGuard.requirePremium("AI chấm điểm cử chỉ");
         UUID me = SecurityContextHolder.getAuthInfo().getId();
         return ok(aiCheckService.verify(me, request), "AI_VERIFY_SUCCESS");
     }

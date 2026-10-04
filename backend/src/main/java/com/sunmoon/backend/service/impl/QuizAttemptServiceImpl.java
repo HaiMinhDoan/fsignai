@@ -75,6 +75,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
     private final QuizRepository quizRepository;
     private final QuizQuestionRepository questionRepository;
     private final QuizBlueprintRepository blueprintRepository;
+    private final com.sunmoon.backend.repository.TopicRepository topicRepository;
     private final SignRepository signRepository;
     private final UserRepository userRepository;
     private final QuestionGenerator generator;
@@ -202,6 +203,97 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         return toResponse(attempt, display, null, List.of());
     }
 
+    /** Điểm đạt của đề tự tạo - cùng mức mặc định với đề trộn */
+    private static final int CUSTOM_PASS_SCORE = 70;
+
+    @Override
+    @Transactional
+    public QuizAttemptResponse startCustom(UUID userId, com.sunmoon.backend.dto.request.practice.CustomQuizRequest request) {
+        List<UUID> topicIds = request.getTopicIds() == null ? List.of()
+                : request.getTopicIds().stream().filter(Objects::nonNull).distinct().toList();
+        int soCau = request.getQuestionCount() == null ? 10 : request.getQuestionCount();
+
+        // Rỗng = tất cả chủ đề: truyền null để bộ lọc không giới hạn theo chủ đề
+        List<UUID> candidateIds = generator.filterHavingVideo(generator.resolveCandidatesByAttributes(
+                topicIds.isEmpty() ? null : topicIds, null, null, null, true));
+        if (candidateIds.size() < 4) {
+            throw new ConflictException(
+                    "Các chủ đề đã chọn chưa đủ từ vựng có video để ra đề. Hãy chọn thêm chủ đề nhé.");
+        }
+
+        long seed = ThreadLocalRandom.current().nextLong();
+        QuestionGenerator.Outcome outcome = generator.generate(candidateIds, Set.of(),
+                QuestionGenerator.Params.builder()
+                        .seed(seed)
+                        .questionCount(soCau)
+                        .optionCount(4)
+                        .questionTypeMix(tronLoaiCau(soCau))
+                        .distractorStrategy(com.sunmoon.backend.constant.enums.DistractorStrategy.MIXED)
+                        .build());
+        if (outcome.questions().isEmpty()) {
+            throw new ConflictException("Không đủ từ vựng để tạo đề. Hãy chọn thêm chủ đề nhé.");
+        }
+
+        List<QuizQuestionResponse> snapshot = new ArrayList<>(
+                outcome.questions().stream().map(generator::toResponse).toList());
+        Region effectiveRegion = request.getRegion() == null ? Region.COMMON : request.getRegion();
+        generator.fillVideoUrls(snapshot, effectiveRegion);
+
+        // Chốt ảnh CÓ đáp án vào CSDL trước khi xoá đáp án khỏi bản gửi cho client
+        JsonNode storedSnapshot = JSON.valueToTree(snapshot);
+        int maxScore = snapshot.stream().mapToInt(q -> q.getPoints() == null ? 0 : q.getPoints()).sum();
+
+        com.fasterxml.jackson.databind.node.ObjectNode cauHinh = JSON.createObjectNode();
+        cauHinh.set("topicIds", JSON.valueToTree(topicIds.stream().map(UUID::toString).toList()));
+        cauHinh.set("topicNamesVi", JSON.valueToTree(topicIds.isEmpty() ? List.of()
+                : topicRepository.findAllById(topicIds).stream()
+                        .map(com.sunmoon.backend.entity.dictionary.Topic::getNameVi).toList()));
+        cauHinh.put("questionCount", snapshot.size());
+        cauHinh.put("passScore", CUSTOM_PASS_SCORE);
+
+        QuizAttempt attempt = attemptRepository.save(QuizAttempt.builder()
+                .user(userRepository.getReferenceById(userId))
+                .customConfig(cauHinh)
+                .region(effectiveRegion)
+                .status(QuizAttemptStatus.IN_PROGRESS)
+                .startedAt(OffsetDateTime.now())
+                .seed(seed)
+                .generatedQuestions(storedSnapshot)
+                .score(0)
+                .maxScore(maxScore)
+                .build());
+
+        List<QuizQuestionResponse> display = new ArrayList<>(snapshot);
+        stripAnswers(display);
+        return toResponse(attempt, display, null, List.of());
+    }
+
+    /** Chia loại câu theo cùng tỉ lệ với đề trộn mặc định: 50% xem video chọn chữ, 30% ngược lại, 20% nối */
+    private static Map<QuestionType, Integer> tronLoaiCau(int soCau) {
+        int noi = Math.max(1, Math.round(soCau * 0.2f));
+        int chuSangVideo = Math.round(soCau * 0.3f);
+        Map<QuestionType, Integer> mix = new java.util.LinkedHashMap<>();
+        mix.put(QuestionType.VIDEO_TO_WORD, soCau - noi - chuSangVideo);
+        mix.put(QuestionType.WORD_TO_VIDEO, chuSangVideo);
+        mix.put(QuestionType.MATCHING, noi);
+        return mix;
+    }
+
+    /** Điểm đạt của một lượt thi, bất kể đề đến từ nguồn nào */
+    private static int diemDat(QuizAttempt a) {
+        if (a.getQuiz() != null) return a.getQuiz().getPassScore();
+        if (a.getBlueprint() != null) return a.getBlueprint().getPassScore();
+        return a.getCustomConfig() == null ? CUSTOM_PASS_SCORE
+                : a.getCustomConfig().path("passScore").asInt(CUSTOM_PASS_SCORE);
+    }
+
+    private static String tenDeTuTao(QuizAttempt a) {
+        if (a.getCustomConfig() == null) return null;
+        List<String> ten = new ArrayList<>();
+        a.getCustomConfig().path("topicNamesVi").forEach(n -> ten.add(n.asText()));
+        return "Đề tự tạo · " + (ten.isEmpty() ? "Tất cả chủ đề" : String.join(", ", ten));
+    }
+
     // ==================== XEM & NỘP BÀI ====================
 
     @Override
@@ -271,8 +363,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
         OffsetDateTime submittedAt = OffsetDateTime.now();
         int durationSeconds = (int) Duration.between(attempt.getStartedAt(), submittedAt).getSeconds();
-        int passScoreThreshold = attempt.getQuiz() != null
-                ? attempt.getQuiz().getPassScore() : attempt.getBlueprint().getPassScore();
+        int passScoreThreshold = diemDat(attempt);
 
         attempt.setScore(totalScore);
         attempt.setMaxScore(maxScore);
@@ -422,14 +513,13 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 .quizTitleVi(attempt.getQuiz() != null ? attempt.getQuiz().getTitleVi() : null)
                 .blueprintId(attempt.getBlueprint() != null ? attempt.getBlueprint().getId() : null)
                 .blueprintTitleVi(attempt.getBlueprint() != null ? attempt.getBlueprint().getTitleVi() : null)
+                .customTitleVi(tenDeTuTao(attempt))
                 .region(attempt.getRegion())
                 .status(attempt.getStatus())
                 .score(attempt.getScore())
                 .maxScore(attempt.getMaxScore())
                 .passed(attempt.getPassed())
-                .passScoreRequired(attempt.getQuiz() != null
-                        ? attempt.getQuiz().getPassScore()
-                        : attempt.getBlueprint() != null ? attempt.getBlueprint().getPassScore() : null)
+                .passScoreRequired(diemDat(attempt))
                 .startedAt(attempt.getStartedAt())
                 .submittedAt(attempt.getSubmittedAt())
                 .durationSeconds(attempt.getDurationSeconds())

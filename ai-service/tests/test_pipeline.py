@@ -51,6 +51,21 @@ def test_meta_marks_where_the_sign_starts_and_ends():
     assert abs(cuoi - (pad + n - 1)) <= 1
 
 
+def test_sitting_offset_is_not_punished_but_far_location_still_is():
+    """Người học ngồi lệch khung (cả người dịch 0,2 vai) không bị phạt vị trí oan,
+    nhưng ký hiệu đặt ở chỗ khác hẳn (lệch 0,8 vai) vẫn phải xa."""
+    a = clip(arc)
+
+    def dich(f, dy):
+        g = f.copy()
+        for sl in (F.LOC_L, F.LOC_R):
+            g[:, sl] += np.array([0.0, dy])
+        return g
+
+    assert dist(dich(a, 0.2), a) < 0.03
+    assert dist(dich(a, 0.8), a) > dist(dich(a, 0.2), a) + 0.05
+
+
 def test_different_trajectory_is_far():
     assert dist(clip(arc), clip(circle)) > 0.12
     assert dist(clip(arc), clip(swipe_down)) > 0.12

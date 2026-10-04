@@ -6,27 +6,6 @@
     </header>
 
     <div class="filter-row">
-      <div v-if="topics.length" class="topic-pills">
-        <button
-          type="button"
-          class="pill"
-          :class="{ 'is-active': activeTopic === undefined }"
-          @click="selectTopic(undefined)"
-        >
-          Tất cả chủ đề
-        </button>
-        <button
-          v-for="t in topics"
-          :key="t.id"
-          type="button"
-          class="pill"
-          :class="{ 'is-active': activeTopic === t.id }"
-          @click="selectTopic(t.id)"
-        >
-          {{ t.nameVi }}
-        </button>
-      </div>
-
       <div class="level-pills">
         <button
           v-for="lv in LEVELS"
@@ -79,7 +58,6 @@
   import { ref, onMounted } from 'vue';
   import SiIcon from '@/components/SiIcon.vue';
   import { coursesApi, type CourseSummary, type SignLevel } from '@/api/course';
-  import { topicOptionsApi, type TopicRef } from '@/api/dictionary';
 
   defineOptions({ name: 'CourseListView' });
 
@@ -93,12 +71,10 @@
     { label: 'Mọi cấp độ', value: undefined },
     { label: 'Nhập môn', value: 'BEGINNER' },
     { label: 'Cơ bản', value: 'BASIC' },
-    { label: 'Trung cấp', value: 'INTERMEDIATE' },
+    // Bỏ "Trung cấp" khỏi bộ lọc theo yêu cầu - khoảng cách Cơ bản → Nâng cao đủ rõ
     { label: 'Nâng cao', value: 'ADVANCED' },
   ];
 
-  const topics = ref<TopicRef[]>([]);
-  const activeTopic = ref<string | undefined>(undefined);
   const activeLevel = ref<SignLevel | undefined>(undefined);
   const courses = ref<CourseSummary[]>([]);
   const loading = ref(true);
@@ -108,7 +84,7 @@
     loading.value = true;
     error.value = '';
     try {
-      const res = await coursesApi(activeTopic.value, activeLevel.value);
+      const res = await coursesApi(undefined, activeLevel.value);
       courses.value = res.items;
     } catch (e) {
       error.value = (e as Error).message;
@@ -117,23 +93,12 @@
     }
   }
 
-  function selectTopic(id: string | undefined) {
-    activeTopic.value = id;
-    loadCourses();
-  }
   function selectLevel(level: SignLevel | undefined) {
     activeLevel.value = level;
     loadCourses();
   }
 
-  onMounted(async () => {
-    try {
-      topics.value = await topicOptionsApi();
-    } catch {
-      // Bo qua - bo loc chu de chi la tien loi
-    }
-    await loadCourses();
-  });
+  onMounted(loadCourses);
 </script>
 
 <style scoped>

@@ -58,6 +58,12 @@ public class QuizAttempt {
     @Column(name = "seed")
     private Long seed;
 
+    // Đề người học TỰ TẠO (không từ đề soạn tay, không từ cấu hình đề trộn):
+    // lưu lại lựa chọn chủ đề, số câu và điểm đạt để xem lại / chấm điểm sau này
+    @Type(JsonType.class)
+    @Column(name = "custom_config", columnDefinition = "jsonb")
+    private JsonNode customConfig;
+
     @NotNull
     @ColumnDefault("0")
     @Column(name = "score", nullable = false)

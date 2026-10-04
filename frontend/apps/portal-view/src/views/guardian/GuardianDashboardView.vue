@@ -215,7 +215,7 @@
       </header>
 
       <p v-if="!recent.length" class="muted">
-        Người học chưa học ký hiệu nào trong tuần này — cùng nhau mở Phòng Luyện nhé.
+        Người học chưa học ký hiệu nào trong tuần này — cùng nhau mở Thư Viện Cử Chỉ nhé.
       </p>
       <div v-else class="clip-row">
         <RouterLink

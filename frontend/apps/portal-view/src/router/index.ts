@@ -2,9 +2,10 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth';
 
 /**
- * Đường dẫn tiếng Việt không dấu, khớp 5 mục điều hướng trong Figma:
- * Trang Chủ · Phòng Luyện Ký Hiệu · Góc Trò Chơi · Thư Viện Cử Chỉ ·
- * Dành Cho Ba Mẹ & Thầy Cô.
+ * Đường dẫn tiếng Việt không dấu.
+ *
+ * Phòng Luyện Ký Hiệu đã bỏ (2026-10-03): video mẫu, gương camera, chấm điểm AI và
+ * các bước thực hiện đều đã có ở trang từng từ của Thư Viện Cử Chỉ.
  */
 const routes: RouteRecordRaw[] = [
   {
@@ -13,17 +14,12 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
 
+      // Đường dẫn cũ của Phòng Luyện vẫn còn trong dấu trang, tin nhắn đã gửi đi:
+      // chuyển sang trang từ tương ứng thay vì để rơi vào trang trắng
+      { path: 'phong-luyen', redirect: { name: 'dictionary-search' } },
       {
-        path: 'phong-luyen',
-        name: 'practice',
-        component: () => import('@/views/practice/PracticeRoomView.vue'),
-      },
-      {
-        // Cùng một màn hình, chỉ khác là đã biết luyện từ nào
         path: 'phong-luyen/:id',
-        name: 'practice-sign',
-        component: () => import('@/views/practice/PracticeRoomView.vue'),
-        props: true,
+        redirect: (to) => ({ name: 'dictionary-detail', params: { id: to.params.id } }),
       },
 
       {
@@ -36,12 +32,14 @@ const routes: RouteRecordRaw[] = [
         path: 'tu-dien',
         name: 'dictionary-search',
         component: () => import('@/views/dictionary/DictionarySearchView.vue'),
+        meta: { premium: 'Thư viện cử chỉ' },
       },
       {
         path: 'tu-dien/:id',
         name: 'dictionary-detail',
         component: () => import('@/views/dictionary/SignDetailView.vue'),
         props: true,
+        meta: { premium: 'Thư viện cử chỉ' },
       },
 
       {
@@ -91,6 +89,12 @@ const routes: RouteRecordRaw[] = [
         path: 'kiem-tra',
         name: 'quiz-hub',
         component: () => import('@/views/quiz/QuizHubView.vue'),
+        meta: { premium: 'Bài kiểm tra kiến thức' },
+      },
+      {
+        path: 'goi-dich-vu',
+        name: 'pricing',
+        component: () => import('@/views/PricingView.vue'),
       },
       {
         path: 'kiem-tra/:attemptId',
@@ -161,6 +165,14 @@ router.beforeEach(async (to) => {
     !PUBLIC_ROUTES.has(to.name as string)
   ) {
     return { name: 'onboarding' };
+  }
+
+  // Trang thuộc gói Premium: chưa có gói thì đưa sang trang Gói dịch vụ, kèm tên tính năng để
+  // giải thích vì sao. Chỉ là lớp giao diện — bắt đầu bài kiểm tra / chấm AI còn bị chặn ở máy chủ.
+  // Lượt kiểm tra đang làm dở (/kiem-tra/:attemptId) không chặn: gói hết hạn giữa chừng vẫn nộp được.
+  const premiumFeature = to.meta.premium as string | undefined;
+  if (premiumFeature && !auth.isPremium()) {
+    return { name: 'pricing', query: { 'tinh-nang': premiumFeature } };
   }
 
   return true;

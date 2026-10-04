@@ -44,7 +44,10 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "/api/v1/auth/register",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/forgot-password",
-                        "/api/v1/auth/reset-password");
+                        "/api/v1/auth/reset-password",
+                        // SePay gửi "Authorization: Apikey <khoá>" - interceptor này đòi "Bearer" nên sẽ trả
+                        // 401 trước khi tới controller. Webhook tự xác thực (API key / HMAC) trong controller.
+                        "/api/v1/payments/sepay/webhook");
     }
 
     //Security Config==================================================================================================>

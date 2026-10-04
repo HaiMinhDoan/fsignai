@@ -26,6 +26,10 @@ import java.util.UUID;
 public class QuizAttemptController {
 
     private final QuizAttemptService attemptService;
+    // Bài kiểm tra thuộc gói Premium. Chỉ chặn lúc BẮT ĐẦU lượt thi: lượt đang làm dở / xem lại
+    // bài cũ vẫn mở được, kể cả khi gói vừa hết hạn giữa chừng.
+    private final com.sunmoon.backend.service.support.SubscriptionGuard subscriptionGuard;
+    private final com.sunmoon.backend.repository.LessonItemRepository lessonItemRepository;
 
     @Operation(summary = "Bắt đầu lượt thi từ một đề soạn tay")
     @RequireAuth(roles = {RoleType.ALL})
@@ -33,6 +37,11 @@ public class QuizAttemptController {
     public ResponseEntity<ResponseData<QuizAttemptResponse>> startFromQuiz(
             @PathVariable UUID quizId,
             @RequestParam(defaultValue = "COMMON") Region region) {
+        // Gói Free có "Khóa học đầy đủ": đề gắn trong một bài học là một phần của khoá học, không chặn.
+        // Chỉ đề đứng riêng ở mục Kiểm Tra mới là "Bài kiểm tra kiến thức" của gói Premium.
+        if (!lessonItemRepository.existsByQuizId(quizId)) {
+            subscriptionGuard.requirePremium("Bài kiểm tra kiến thức");
+        }
         UUID userId = SecurityContextHolder.getAuthInfo().getId();
         return ok(attemptService.startFromQuiz(userId, quizId, region), "QUIZ_ATTEMPT_STARTED");
     }
@@ -44,8 +53,20 @@ public class QuizAttemptController {
     public ResponseEntity<ResponseData<QuizAttemptResponse>> startFromBlueprint(
             @PathVariable UUID blueprintId,
             @RequestParam(defaultValue = "COMMON") Region region) {
+        subscriptionGuard.requirePremium("Bài kiểm tra kiến thức");
         UUID userId = SecurityContextHolder.getAuthInfo().getId();
         return ok(attemptService.startFromBlueprint(userId, blueprintId, region), "QUIZ_ATTEMPT_STARTED");
+    }
+
+    @Operation(summary = "Tự tạo đề kiểm tra",
+            description = "Chọn tất cả chủ đề (topicIds rỗng) hoặc vài chủ đề muốn ôn; rút ngẫu nhiên mỗi lần gọi")
+    @RequireAuth(roles = {RoleType.ALL})
+    @PostMapping("/custom")
+    public ResponseEntity<ResponseData<QuizAttemptResponse>> startCustom(
+            @Valid @RequestBody com.sunmoon.backend.dto.request.practice.CustomQuizRequest request) {
+        subscriptionGuard.requirePremium("Bài kiểm tra kiến thức");
+        UUID userId = SecurityContextHolder.getAuthInfo().getId();
+        return ok(attemptService.startCustom(userId, request), "QUIZ_ATTEMPT_STARTED");
     }
 
     @Operation(summary = "Xem lại một lượt thi của chính mình")

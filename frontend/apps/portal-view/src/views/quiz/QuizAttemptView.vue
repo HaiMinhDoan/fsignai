@@ -8,7 +8,7 @@
     <!-- ===== Đang làm bài ===== -->
     <template v-else-if="attempt && attempt.status === 'IN_PROGRESS'">
       <header class="attempt-head">
-        <h1>{{ attempt.quizTitleVi ?? attempt.blueprintTitleVi }}</h1>
+        <h1>{{ attempt.quizTitleVi ?? attempt.blueprintTitleVi ?? attempt.customTitleVi }}</h1>
         <div class="progress-track">
           <span class="progress-fill" :style="{ width: `${((currentIndex + 1) / attempt.questions.length) * 100}%` }" />
         </div>

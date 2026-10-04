@@ -43,5 +43,13 @@ export const useAuthStore = defineStore('auth', () => {
     isReady.value = true;
   }
 
-  return { user, isReady, isLoggedIn, login, register, logout, restoreSession };
+  /** Nạp lại hồ sơ — vd. ngay sau khi thanh toán xong để mở khoá Premium không cần đăng nhập lại */
+  async function refreshProfile() {
+    if (!getToken()) return;
+    user.value = await meApi();
+  }
+
+  const isPremium = () => !!user.value?.premium;
+
+  return { user, isReady, isLoggedIn, isPremium, login, register, logout, restoreSession, refreshProfile };
 });

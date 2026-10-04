@@ -54,6 +54,10 @@ public class User {
     @JoinColumn(name = "avatar_file_id")
     private FileAttachment avatarFile;
 
+    /** Gói Premium còn hiệu lực đến lúc nào. NULL hoặc đã qua = gói Free (xem SubscriptionService) */
+    @Column(name = "premium_until")
+    private java.time.OffsetDateTime premiumUntil;
+
     @Size(max = 255)
     @Column(name = "address", length = 255)
     private String address;

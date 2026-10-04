@@ -60,13 +60,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AiCheckServiceImpl implements AiCheckService {
 
     /** Khi từ chưa có ngưỡng riêng và bảng nhóm thiếu dòng tương ứng — ngưỡng của nhóm "từ 2 tay" */
-    private static final BigDecimal FALLBACK_THRESHOLD = new BigDecimal("0.30");
+    private static final BigDecimal FALLBACK_THRESHOLD = new BigDecimal("0.36");
 
-    /** Điểm 60 đúng tại ngưỡng: khoảng cách = ngưỡng ↔ 60 điểm, 0 ↔ 100 điểm, gấp đôi ngưỡng ↔ 36 điểm */
-    private static final double SCORE_AT_THRESHOLD = 0.6;
+    /**
+     * Điểm 72 đúng tại ngưỡng: khoảng cách = ngưỡng ↔ 72 điểm, 0 ↔ 100, gấp đôi ngưỡng ↔ 52.
+     *
+     * Trước 2026-10-04 là 0,6 (ngưỡng ↔ 60, gấp đôi ↔ 36): người học thật trung bình chỉ được
+     * 32,8 điểm, làm gần đúng cũng thấy con số rất thấp và nản. Đạt/không vẫn do ngưỡng quyết định
+     * (khoảng cách ≤ ngưỡng ⇔ điểm ≥ 72), chỉ là con số dễ chịu hơn và phản ánh "gần đúng" rõ hơn.
+     */
+    private static final double SCORE_AT_THRESHOLD = 0.72;
 
-    private static final double GOOD_PART = 80;
-    private static final double BAD_PART = 60;
+    // Cùng ý nghĩa với mốc cũ 80/60 trên đường điểm mới: 60 cũ ↔ đúng ngưỡng ↔ 72 mới,
+    // 80 cũ ↔ 0,44 lần ngưỡng ↔ 86 mới
+    private static final double GOOD_PART = 86;
+    private static final double BAD_PART = 72;
     private static final double LOW_TRACKING = 0.6;
 
     /** Giới hạn theo hợp đồng API: 30 lượt/phút/người */
@@ -187,7 +195,7 @@ public class AiCheckServiceImpl implements AiCheckService {
 
     // ------------------------------------------------------------------ chấm điểm
 
-    /** Điểm tổng: 100 × 0,6^(khoảng cách / ngưỡng). Đạt ⇔ khoảng cách ≤ ngưỡng ⇔ điểm ≥ 60. */
+    /** Điểm tổng: 100 × 0,72^(khoảng cách / ngưỡng). Đạt ⇔ khoảng cách ≤ ngưỡng ⇔ điểm ≥ 72. */
     static double toScore(double distance, double threshold) {
         double s = 100 * Math.pow(SCORE_AT_THRESHOLD, distance / threshold);
         return Math.round(Math.max(0, Math.min(100, s)) * 100) / 100.0;

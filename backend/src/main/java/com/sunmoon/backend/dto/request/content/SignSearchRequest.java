@@ -42,7 +42,13 @@ public class SignSearchRequest {
      * Đang soạn bài cho khoá này: ẩn những từ đã thuộc một khoá KHÁC.
      * Từ đã có trong chính khoá này vẫn hiện (người soạn cần thấy để chuyển bài).
      */
-    UUID hideUsedOutsideCourseId;     // tu CHUA cham diem AI duoc
+    UUID hideUsedOutsideCourseId;
+
+    /**
+     * Đang soạn bài này: ẩn mọi từ đã nằm ở một bài KHÁC (cùng khoá hay khoá khác).
+     * Chặt hơn hideUsedOutsideCourseId - mỗi từ chỉ thuộc đúng một bài.
+     */
+    UUID hideUsedOutsideLessonId;     // tu CHUA cham diem AI duoc
 
     @Builder.Default
     List<SortCriteria> sorts = new ArrayList<>();

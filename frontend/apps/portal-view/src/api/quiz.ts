@@ -69,6 +69,8 @@ export interface QuizAttempt {
   quizTitleVi?: string;
   blueprintId?: string;
   blueprintTitleVi?: string;
+  /** Tên đề người học tự tạo */
+  customTitleVi?: string;
   region: string;
   status: QuizAttemptStatus;
   score?: number;
@@ -95,6 +97,10 @@ export const startAttemptFromQuizApi = (quizId: string, region = 'COMMON') =>
 
 export const startAttemptFromBlueprintApi = (blueprintId: string, region = 'COMMON') =>
   apiPost<QuizAttempt>(`/learn/quiz-attempts/from-blueprint/${blueprintId}?region=${region}`);
+
+/** Tự tạo đề: topicIds rỗng = tất cả chủ đề */
+export const startCustomAttemptApi = (topicIds: string[], questionCount = 10, region = 'COMMON') =>
+  apiPost<QuizAttempt>('/learn/quiz-attempts/custom', { topicIds, questionCount, region });
 
 export const getAttemptApi = (attemptId: string) =>
   apiGet<QuizAttempt>(`/learn/quiz-attempts/${attemptId}`);
