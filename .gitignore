@@ -3,8 +3,8 @@ __pycache__/
 # Cấu hình triển khai: chứa mật khẩu CSDL, khoá MinIO, App Password email.
 # Chỉ commit .env.example (đã thay bằng giá trị giả).
 # .env
-.env.build
-.env.local
+# .env.build
+# .env.local
 
 # Du lieu ca nhan that (ho so sinh vien: CCCD, dia chi, so dien thoai) - TUYET DOI khong dua len git
-user_data/
+# user_data/
