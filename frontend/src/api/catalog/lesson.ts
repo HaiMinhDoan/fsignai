@@ -65,7 +65,7 @@ export const lessonAddItemApi = (lessonId: string, data: Record<string, unknown>
  * Backend bỏ qua từ đã có trong bài và trả về số thực sự được thêm.
  */
 export const lessonAddSignsApi = (lessonId: string, signIds: string[]) =>
-  defHttp.post<{ added: number; skipped: number; usedInCourse: number; usedElsewhere: number }>({
+  defHttp.post<{ added: number; skipped: number; usedElsewhere: number }>({
     url: `${LESSONS}/${lessonId}/items/signs`,
     data: { signIds },
     timeout: 60 * 1000,

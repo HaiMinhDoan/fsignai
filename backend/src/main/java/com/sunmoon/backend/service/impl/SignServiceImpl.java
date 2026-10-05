@@ -107,9 +107,10 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
         addEquals(filters, "isPublished", request.getIsPublished());
         addEquals(filters, "primaryTopic.id", request.getTopicId());
 
-        if (request.getHideUsedOutsideLessonId() != null || request.getHideUsedOutsideCourseId() != null) {
-            List<UUID> daDung = request.getHideUsedOutsideLessonId() != null
-                    ? lessonItemRepository.findSignIdsUsedOutsideLesson(request.getHideUsedOutsideLessonId())
+        if (request.getForLessonId() != null || request.getHideUsedOutsideCourseId() != null) {
+            // Soạn bài: chỉ ẩn từ đã có trong CHÍNH bài này. Từ ở bài khác vẫn hiện (kèm cảnh báo).
+            List<UUID> daDung = request.getForLessonId() != null
+                    ? lessonItemRepository.findSignIdsByLessonId(request.getForLessonId())
                     : lessonItemRepository.findSignIdsUsedOutsideCourse(request.getHideUsedOutsideCourseId());
             if (!daDung.isEmpty()) {
                 filters.add(FilterCriteria.builder()
@@ -134,6 +135,9 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
                 .map(this::toListItem)
                 .filter(item -> matchesVideoFilters(item, request))
                 .toList();
+        if (request.getForLessonId() != null) {
+            fillLessonUsages(items, request.getForLessonId());
+        }
 
         return PageResponse.<SignResponse>builder()
                 .items(items)
@@ -142,6 +146,23 @@ public class SignServiceImpl extends BaseServiceImpl<Sign, UUID> implements Sign
                 .size(page.getSize())
                 .totalPages(page.getTotalPages())
                 .build();
+    }
+
+    /** Gắn danh sách bài học KHÁC đang dùng từng từ — để CMS hiện cảnh báo vàng */
+    private void fillLessonUsages(List<SignResponse> items, UUID lessonId) {
+        if (items.isEmpty()) return;
+        Map<UUID, List<SignResponse.LessonUsageResponse>> theoTu = new HashMap<>();
+        for (Object[] r : lessonItemRepository.findLessonUsages(
+                items.stream().map(SignResponse::getId).toList(), lessonId)) {
+            theoTu.computeIfAbsent((UUID) r[0], k -> new ArrayList<>())
+                    .add(SignResponse.LessonUsageResponse.builder()
+                            .courseId((UUID) r[1])
+                            .courseTitleVi((String) r[2])
+                            .lessonId((UUID) r[3])
+                            .lessonTitleVi((String) r[4])
+                            .build());
+        }
+        items.forEach(i -> i.setLessonUsages(theoTu.getOrDefault(i.getId(), List.of())));
     }
 
     // Hai bo loc nay doc tu bang phu (sign_videos, sign_exemplars) nen loc sau

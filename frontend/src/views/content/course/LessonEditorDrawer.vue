@@ -49,9 +49,19 @@
       :scroll="{ y: 220 }"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'inLesson'">
-          <Tag v-if="existingSignIds.has(record.id)" color="green">Đã có trong bài</Tag>
-          <span v-else class="text-gray-400">—</span>
+        <template v-if="column.key === 'usage'">
+          <!-- Vẫn chọn được, chỉ cảnh báo: người soạn tự quyết có lặp lại từ hay không -->
+          <div v-if="record.lessonUsages?.length" class="usage-tags">
+            <Tag
+              v-for="u in record.lessonUsages"
+              :key="u.lessonId"
+              color="gold"
+              class="usage-tag"
+            >
+              ⚠ Đã được sử dụng ở khoá học «{{ u.courseTitleVi }}», bài học «{{ u.lessonTitleVi }}»
+            </Tag>
+          </div>
+          <span v-else class="text-gray-400">Chưa dùng ở bài nào</span>
         </template>
       </template>
     </Table>
@@ -146,8 +156,6 @@
 
   const lessonId = ref<string>();
   const lessonTitle = ref('');
-  /** Khoá chứa bài đang soạn - để ô tìm từ ẩn những từ đã thuộc khoá khác */
-  const courseId = ref<string>();
   const items = ref<LessonItemModel[]>([]);
 
   const keyword = ref('');
@@ -158,11 +166,6 @@
   const searching = ref(false);
   const adding = ref(false);
   const reordering = ref(false);
-
-  /** Từ đã nằm trong bài — dùng để đánh dấu trong bảng tìm kiếm */
-  const existingSignIds = computed(
-    () => new Set(items.value.map((i) => i.signId).filter(Boolean) as string[]),
-  );
 
   const pickerSelection = computed(
     () =>
@@ -176,10 +179,10 @@
   );
 
   const pickerColumns = [
-    { title: 'Từ', dataIndex: 'wordVi', width: 180 },
-    { title: 'Gloss', dataIndex: 'gloss', width: 160 },
-    { title: 'Chủ đề chính', dataIndex: 'primaryTopicNameVi', ellipsis: true },
-    { title: '', key: 'inLesson', width: 140 },
+    { title: 'Từ', dataIndex: 'wordVi', width: 160 },
+    { title: 'Gloss', dataIndex: 'gloss', width: 140 },
+    { title: 'Chủ đề chính', dataIndex: 'primaryTopicNameVi', width: 160, ellipsis: true },
+    { title: 'Đã dùng ở', key: 'usage' },
   ];
 
   const itemColumns = [
@@ -213,12 +216,11 @@
       const result = await signSearchApi({
         keyword: keyword.value || undefined,
         topicId: topicId.value,
-        // Mỗi từ chỉ nằm ở đúng một bài: từ đã ở bài khác (cùng khoá hay khoá khác)
-        // không hiện ra để chọn nữa
-        hideUsedOutsideLessonId: lessonId.value,
+        // Ẩn từ đã có trong chính bài này; từ ở bài khác vẫn hiện, kèm cảnh báo vàng
+        forLessonId: lessonId.value,
         page: 0,
         size: 50,
-      } as any);
+      });
       searchResults.value = result.items ?? [];
       pickedSignIds.value = [];
       if (!searchResults.value.length) {
@@ -233,14 +235,15 @@
     if (!lessonId.value || !pickedSignIds.value.length) return;
     adding.value = true;
     try {
+      const daThem = new Set(pickedSignIds.value);
       const result = await lessonAddSignsApi(lessonId.value, pickedSignIds.value);
-      // Backend bỏ qua từ đã có sẵn và từ thuộc khoá khác; nói rõ để người dùng không tưởng là lỗi
-      const boQua = [
-        result.skipped ? `${result.skipped} từ đã có trong bài` : '',
-        result.usedInCourse ? `${result.usedInCourse} từ đã nằm ở bài khác của khoá này` : '',
-        result.usedElsewhere ? `${result.usedElsewhere} từ đã thuộc khoá học khác` : '',
+      const ghiChu = [
+        result.skipped ? `bỏ qua ${result.skipped} từ đã có trong bài` : '',
+        result.usedElsewhere ? `${result.usedElsewhere} từ cũng đang được dùng ở bài học khác` : '',
       ].filter(Boolean);
-      createMessage.success(`Đã thêm ${result.added} từ` + (boQua.length ? `, bỏ qua ${boQua.join(', ')}` : ''));
+      createMessage.success(`Đã thêm ${result.added} từ` + (ghiChu.length ? ` (${ghiChu.join('; ')})` : ''));
+      // Từ vừa thêm giờ đã nằm trong bài: bỏ khỏi bảng tìm kiếm, đúng như lần tìm sau sẽ ẩn
+      searchResults.value = searchResults.value.filter((r) => !daThem.has(r.id));
       pickedSignIds.value = [];
       await refresh();
       emit('success');
@@ -280,6 +283,18 @@
     if (!lessonId.value) return;
     const detail = await lessonDetailApi(lessonId.value);
     items.value = detail.items ?? [];
-    courseId.value = detail.courseId;
   }
 </script>
+
+<style lang="less" scoped>
+  .usage-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .usage-tag {
+    margin: 0;
+    white-space: normal;
+  }
+</style>

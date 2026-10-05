@@ -5,13 +5,12 @@ import { topicOptionsApi } from '@/api/content/topic';
 import { LEVEL_OPTIONS, UNIT_TYPE_OPTIONS, WORD_TYPE_OPTIONS } from '../sign/sign.data';
 import { DISTRACTOR_OPTIONS } from '../quiz/quiz.data';
 
-// Chỉ 4 dạng câu này có "lựa chọn" để trộn — AI_PERFORM là người học tự thực
-// hiện trước webcam, không có gì để rút ngẫu nhiên theo tỉ lệ ở đây cả.
+// Câu chọn đáp án chỉ có HAI cơ chế. Trắc nghiệm / ghép đôi không có giao diện riêng ở trang làm
+// bài (hiện ra như lưới vừa video vừa chữ, lộ đáp án) nên đã bỏ — máy chủ gộp chúng vào hai dạng
+// này. AI_PERFORM là người học tự thực hiện trước webcam, không có gì để rút theo tỉ lệ.
 export const MIX_QUESTION_TYPES = [
   { value: 'VIDEO_TO_WORD', label: 'Xem video, chọn từ' },
   { value: 'WORD_TO_VIDEO', label: 'Đọc từ, chọn video' },
-  { value: 'MULTIPLE_CHOICE', label: 'Trắc nghiệm' },
-  { value: 'MATCHING', label: 'Ghép đôi' },
 ] as const;
 
 export const columns: BasicColumn[] = [

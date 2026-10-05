@@ -176,8 +176,18 @@ export interface SignRelationModel {
   relationType: 'RELATED' | 'SYNONYM' | 'ANTONYM' | 'EASILY_CONFUSED';
 }
 
+/** Một bài học KHÁC đang dùng từ vựng này */
+export interface LessonUsageModel {
+  courseId: string;
+  courseTitleVi: string;
+  lessonId: string;
+  lessonTitleVi: string;
+}
+
 export interface SignModel {
   id: string;
+  /** Chỉ có khi tìm kèm forLessonId (soạn bài) */
+  lessonUsages?: LessonUsageModel[];
   gloss: string;
   wordVi: string;
   wordEn?: string;
@@ -251,6 +261,11 @@ export interface SignSearchParams {
   missingVideoRegion?: Region;
   /** Lọc từ CHƯA chấm điểm AI được */
   missingExemplar?: boolean;
+  /**
+   * Đang soạn bài này: ẩn từ đã có trong chính bài, từ ở bài khác vẫn hiện kèm lessonUsages
+   * để gắn cảnh báo "Đã được sử dụng ở khoá học … bài học …"
+   */
+  forLessonId?: string;
   sorts?: SortCriteria[];
   page?: number;
   size?: number;

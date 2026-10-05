@@ -9,13 +9,18 @@ export const QUIZ_TYPE_OPTIONS = [
   { label: 'Luyện tập tự do', value: 'PRACTICE' },
 ];
 
+/** Các dạng câu còn dùng: hai cơ chế chọn đáp án + tự thực hiện ký hiệu trước camera */
 export const QUESTION_TYPE_OPTIONS = [
   { label: 'Xem video, chọn từ', value: 'VIDEO_TO_WORD' },
   { label: 'Đọc từ, chọn video', value: 'WORD_TO_VIDEO' },
-  { label: 'Trắc nghiệm', value: 'MULTIPLE_CHOICE' },
-  { label: 'Ghép đôi', value: 'MATCHING' },
   { label: 'Tự thực hiện ký hiệu', value: 'AI_PERFORM' },
 ];
+
+// Chỉ để đọc tên dạng câu của lượt thi cũ — không cho chọn khi soạn đề nữa
+const LEGACY_QUESTION_TYPE_LABELS: Record<string, string> = {
+  MULTIPLE_CHOICE: 'Trắc nghiệm (cũ)',
+  MATCHING: 'Ghép đôi (cũ)',
+};
 
 export const DISTRACTOR_OPTIONS = [
   { label: 'Ưu tiên từ dễ nhầm', value: 'EASILY_CONFUSED' },
@@ -24,7 +29,7 @@ export const DISTRACTOR_OPTIONS = [
 ];
 
 export const questionTypeLabel = (v?: string) =>
-  QUESTION_TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v ?? '';
+  QUESTION_TYPE_OPTIONS.find((o) => o.value === v)?.label ?? LEGACY_QUESTION_TYPE_LABELS[v ?? ''] ?? v ?? '';
 
 const quizTypeLabel = (v?: string) => QUIZ_TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v ?? '';
 

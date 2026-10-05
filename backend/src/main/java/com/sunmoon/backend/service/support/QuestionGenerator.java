@@ -136,7 +136,7 @@ public class QuestionGenerator {
             optionIds.add(correctIndex, answerId);
 
             result.add(QuizQuestion.builder()
-                    .questionType(type)
+                    .questionType(mechanismOf(type))
                     .sign(answer)
                     .promptVi(defaultPrompt(type, answer))
                     .optionsJson(buildOptionsJson(optionIds, signById))
@@ -147,12 +147,34 @@ public class QuestionGenerator {
         return new Outcome(result, warnings);
     }
 
+    /**
+     * Câu trắc nghiệm chỉ có HAI cơ chế:
+     *  • VIDEO_TO_WORD — xem video, hỏi "Đây là ký hiệu của từ gì?", chọn trong các TỪ
+     *  • WORD_TO_VIDEO — cho từ, hỏi "Đâu là ký hiệu của từ "X"?", chọn trong các VIDEO
+     *
+     * MULTIPLE_CHOICE và MATCHING còn trong enum vì CSDL và đề cũ còn dùng, nhưng không có
+     * giao diện riêng: trước đây chúng hiện ra như một lưới vừa có video vừa có chữ, lộ luôn
+     * đáp án. Gộp về cơ chế gần nhất: trắc nghiệm → xem video chọn từ, ghép đôi → từ chọn video.
+     */
+    public static QuestionType mechanismOf(QuestionType type) {
+        if (type == null) return QuestionType.VIDEO_TO_WORD;
+        return switch (type) {
+            case MULTIPLE_CHOICE -> QuestionType.VIDEO_TO_WORD;
+            case MATCHING -> QuestionType.WORD_TO_VIDEO;
+            default -> type;
+        };
+    }
+
     /** Dàn số câu theo tỉ lệ các dạng đã khai */
     public List<QuestionType> buildTypePlan(Map<QuestionType, Integer> mix, int total) {
         if (mix == null || mix.isEmpty()) {
             // Mặc định chia đều hai dạng cơ bản: xem video chọn từ, và ngược lại
             mix = Map.of(QuestionType.VIDEO_TO_WORD, 1, QuestionType.WORD_TO_VIDEO, 1);
         }
+        // Đề trộn cũ còn khai MULTIPLE_CHOICE / MATCHING: cộng dồn vào cơ chế tương ứng
+        Map<QuestionType, Integer> gop = new java.util.LinkedHashMap<>();
+        mix.forEach((type, weight) -> gop.merge(mechanismOf(type), weight == null ? 0 : weight, Integer::sum));
+        mix = gop;
 
         int weightSum = mix.values().stream().mapToInt(Integer::intValue).sum();
         if (weightSum <= 0) {
@@ -210,12 +232,11 @@ public class QuestionGenerator {
     }
 
     public String defaultPrompt(QuestionType type, Sign answer) {
-        return switch (type) {
-            case VIDEO_TO_WORD -> "Ký hiệu trong video có nghĩa là gì?";
+        return switch (mechanismOf(type)) {
             case WORD_TO_VIDEO -> "Đâu là ký hiệu của từ \"" + answer.getWordVi() + "\"?";
-            case MULTIPLE_CHOICE -> "Chọn đáp án đúng cho từ \"" + answer.getWordVi() + "\".";
-            case MATCHING -> "Ghép từ với ký hiệu tương ứng.";
             case AI_PERFORM -> "Hãy thực hiện ký hiệu của từ \"" + answer.getWordVi() + "\".";
+            // VIDEO_TO_WORD: câu dẫn KHÔNG được chứa từ — từ chính là đáp án
+            default -> "Đây là ký hiệu của từ gì?";
         };
     }
 

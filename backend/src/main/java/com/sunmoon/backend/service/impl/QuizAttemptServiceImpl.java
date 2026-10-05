@@ -268,14 +268,12 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         return toResponse(attempt, display, null, List.of());
     }
 
-    /** Chia loại câu theo cùng tỉ lệ với đề trộn mặc định: 50% xem video chọn chữ, 30% ngược lại, 20% nối */
+    /** Chia đôi hai cơ chế câu hỏi: xem video chọn từ, và đọc từ chọn video */
     private static Map<QuestionType, Integer> tronLoaiCau(int soCau) {
-        int noi = Math.max(1, Math.round(soCau * 0.2f));
-        int chuSangVideo = Math.round(soCau * 0.3f);
+        int chuSangVideo = soCau / 2;
         Map<QuestionType, Integer> mix = new java.util.LinkedHashMap<>();
-        mix.put(QuestionType.VIDEO_TO_WORD, soCau - noi - chuSangVideo);
+        mix.put(QuestionType.VIDEO_TO_WORD, soCau - chuSangVideo);
         mix.put(QuestionType.WORD_TO_VIDEO, chuSangVideo);
-        mix.put(QuestionType.MATCHING, noi);
         return mix;
     }
 
@@ -500,8 +498,50 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         return new ArrayList<>(Arrays.asList(result));
     }
 
+    /**
+     * Bỏ MỌI thứ để lộ đáp án khỏi câu hỏi đang làm — không chỉ correctOptionIndex.
+     *
+     * Trước đây chỉ bỏ correctOptionIndex, nhưng signWordVi (chính là từ đáp án), signId (trùng
+     * signId của lựa chọn đúng) và video câu dẫn (trùng URL video của lựa chọn đúng) vẫn đi kèm:
+     * mở tab Network là đọc được đáp án. Mỗi cơ chế chỉ giữ đúng phần người học cần thấy:
+     *  • VIDEO_TO_WORD: video câu dẫn + CHỮ của các lựa chọn (bỏ video/id của lựa chọn)
+     *  • WORD_TO_VIDEO: câu dẫn có từ + VIDEO của các lựa chọn (bỏ chữ/id, bỏ video câu dẫn)
+     */
+    private static final String VIDEO_TO_WORD_PROMPT = "Đây là ký hiệu của từ gì?";
+    private static final String LEGACY_VIDEO_PROMPT = "Ký hiệu trong video có nghĩa là gì?";
+
     private void stripAnswers(List<QuizQuestionResponse> questions) {
-        questions.forEach(q -> q.setCorrectOptionIndex(null));
+        for (QuizQuestionResponse q : questions) {
+            QuestionType loai = QuestionGenerator.mechanismOf(q.getQuestionType());
+            // Câu cũ (trắc nghiệm / ghép đôi / câu dẫn mặc định trước đây): viết lại câu dẫn theo
+            // đúng cơ chế, TRƯỚC khi bỏ signWordVi — dạng "từ chọn video" cần chính từ đó trong câu dẫn
+            boolean doiCoChe = loai != q.getQuestionType();
+            if (loai == QuestionType.WORD_TO_VIDEO && doiCoChe && q.getSignWordVi() != null) {
+                q.setPromptVi("Đâu là ký hiệu của từ \"" + q.getSignWordVi() + "\"?");
+            } else if (loai == QuestionType.VIDEO_TO_WORD
+                    && (doiCoChe || LEGACY_VIDEO_PROMPT.equals(q.getPromptVi()))) {
+                q.setPromptVi(VIDEO_TO_WORD_PROMPT);
+            }
+            q.setQuestionType(loai);
+            q.setCorrectOptionIndex(null);
+            q.setSignId(null);
+            q.setSignWordVi(null);
+            q.setSignGloss(null);
+            if (loai == QuestionType.WORD_TO_VIDEO) {
+                q.setSignVideoUrl(null);
+                q.setSignThumbnailUrl(null);
+            }
+            if (q.getOptions() != null) {
+                q.getOptions().forEach(o -> {
+                    o.setSignId(null);
+                    if (loai == QuestionType.WORD_TO_VIDEO) {
+                        o.setLabel(null);
+                    } else {
+                        o.setVideoUrl(null);
+                    }
+                });
+            }
+        }
     }
 
     private QuizAttemptResponse toResponse(QuizAttempt attempt, List<QuizQuestionResponse> questions,

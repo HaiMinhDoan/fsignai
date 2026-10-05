@@ -411,7 +411,8 @@ public class QuizServiceImpl extends BaseServiceImpl<Quiz, UUID> implements Quiz
         }
 
         target.setQuiz(quiz);
-        target.setQuestionType(request.getQuestionType());
+        // Chỉ còn hai cơ chế chọn đáp án (xem QuestionGenerator.mechanismOf)
+        target.setQuestionType(QuestionGenerator.mechanismOf(request.getQuestionType()));
         target.setSign(sign);
         target.setPromptVi(request.getPromptVi() == null || request.getPromptVi().isBlank()
                 ? generator.defaultPrompt(request.getQuestionType(), sign)

@@ -253,7 +253,7 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
     @Transactional
     public Map<String, Integer> addSigns(UUID lessonId, List<UUID> signIds) {
         if (signIds == null || signIds.isEmpty()) {
-            return Map.of("added", 0, "skipped", 0, "usedInCourse", 0, "usedElsewhere", 0);
+            return Map.of("added", 0, "skipped", 0, "usedElsewhere", 0);
         }
         Lesson lesson = findLesson(lessonId);
         List<UUID> chon = signIds.stream().distinct().toList();
@@ -261,23 +261,15 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
         // Bỏ từ đã có sẵn trong bài. Chọn trùng là chuyện thường khi tích chọn
         // hàng loạt trên danh sách dài, không đáng để báo lỗi và bắt làm lại.
         Set<UUID> already = new HashSet<>(lessonItemRepository.findSignIdsByLessonId(lessonId));
-        // Mỗi từ chỉ thuộc một khoá: chặn cả ở đây chứ không chỉ ở ô tìm kiếm của CMS,
-        // nếu không gọi thẳng API (hay hai người soạn cùng lúc) vẫn lọt từ trùng.
-        Set<UUID> khoaKhac = new HashSet<>(
-                lessonItemRepository.findSignIdsUsedOutsideCourse(lesson.getCourse().getId()));
-        // Trong cùng một khoá cũng không cho lặp giữa các bài: người học đi hết khoá
-        // sẽ gặp lại đúng từ đó như thể là bài mới
+        // Từ đã nằm ở bài khác (cùng khoá hay khoá khác) VẪN được thêm — chỉ đếm để báo lại,
+        // người soạn đã thấy cảnh báo vàng ở ô tìm kiếm trước khi chọn
         Set<UUID> baiKhac = new HashSet<>(lessonItemRepository.findSignIdsUsedOutsideLesson(lessonId));
 
-        List<UUID> toAdd = chon.stream()
-                .filter(id -> !already.contains(id) && !baiKhac.contains(id))
-                .toList();
-        int daCo = (int) chon.stream().filter(already::contains).count();
-        int oKhoaKhac = (int) chon.stream().filter(id -> !already.contains(id) && khoaKhac.contains(id)).count();
-        int oBaiKhacCungKhoa = (int) chon.stream()
-                .filter(id -> !already.contains(id) && baiKhac.contains(id) && !khoaKhac.contains(id)).count();
+        List<UUID> toAdd = chon.stream().filter(id -> !already.contains(id)).toList();
+        int daCo = chon.size() - toAdd.size();
+        int oBaiKhac = (int) toAdd.stream().filter(baiKhac::contains).count();
         if (toAdd.isEmpty()) {
-            return Map.of("added", 0, "skipped", daCo, "usedInCourse", oBaiKhacCungKhoa, "usedElsewhere", oKhoaKhac);
+            return Map.of("added", 0, "skipped", daCo, "usedElsewhere", 0);
         }
 
         List<Sign> signs = signRepository.findAllById(toAdd);
@@ -296,8 +288,7 @@ public class LessonServiceImpl extends BaseServiceImpl<Lesson, UUID> implements 
                     .build());
         }
         lessonItemRepository.saveAll(items);
-        return Map.of("added", items.size(), "skipped", daCo,
-                "usedInCourse", oBaiKhacCungKhoa, "usedElsewhere", oKhoaKhac);
+        return Map.of("added", items.size(), "skipped", daCo, "usedElsewhere", oBaiKhac);
     }
 
     @Override

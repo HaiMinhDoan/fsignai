@@ -23,29 +23,71 @@
           </p>
         </template>
 
-        <template v-else>
-          <div v-if="currentQuestion.signVideoUrl" class="prompt-video">
+        <!-- Dạng 1: "Đây là ký hiệu của từ gì?" — xem MỘT video, chọn trong các TỪ -->
+        <template v-else-if="currentKind === 'video-to-word'">
+          <div class="prompt-video">
             <video
+              v-if="currentQuestion.signVideoUrl"
               :key="currentQuestion.id"
               :src="currentQuestion.signVideoUrl"
               :poster="currentQuestion.signThumbnailUrl"
               controls
+              autoplay
+              muted
+              loop
               playsinline
+              @loadeddata="applyRate"
             ></video>
+            <p v-else class="video-missing">Từ này chưa có video ký hiệu.</p>
           </div>
-          <p v-if="currentQuestion.promptVi" class="prompt-text">{{ currentQuestion.promptVi }}</p>
+          <p class="prompt-text">{{ currentQuestion.promptVi || 'Đây là ký hiệu của từ gì?' }}</p>
 
-          <div class="option-grid" :class="{ 'option-grid--video': hasVideoOptions }">
+          <div class="option-grid" role="radiogroup" :aria-label="currentQuestion.promptVi">
             <button
               v-for="(opt, i) in currentQuestion.options"
               :key="i"
               type="button"
-              class="option-btn"
+              role="radio"
+              class="option-btn option-btn--word"
               :class="{ 'is-selected': answers[currentIndex] === i }"
+              :aria-checked="answers[currentIndex] === i"
               @click="answers[currentIndex] = i"
             >
-              <video v-if="opt.videoUrl" :src="opt.videoUrl" muted playsinline @mouseenter="replay($event)"></video>
+              <span class="option-letter" aria-hidden="true">{{ LETTERS[i] }}</span>
               <span>{{ opt.label }}</span>
+            </button>
+          </div>
+        </template>
+
+        <!-- Dạng 2: "Đâu là ký hiệu của từ "X"?" — cho TỪ, chọn trong các VIDEO.
+             Không có video câu dẫn, lựa chọn không có chữ: chữ chính là đáp án. -->
+        <template v-else>
+          <p class="prompt-text prompt-text--big">{{ currentQuestion.promptVi }}</p>
+
+          <div class="option-grid option-grid--video" role="radiogroup" :aria-label="currentQuestion.promptVi">
+            <button
+              v-for="(opt, i) in currentQuestion.options"
+              :key="`${currentQuestion.id}-${i}`"
+              type="button"
+              role="radio"
+              class="option-btn"
+              :class="{ 'is-selected': answers[currentIndex] === i }"
+              :aria-checked="answers[currentIndex] === i"
+              :aria-label="`Lựa chọn ${LETTERS[i]}`"
+              @click="answers[currentIndex] = i"
+            >
+              <video
+                v-if="opt.videoUrl"
+                :src="opt.videoUrl"
+                autoplay
+                muted
+                loop
+                playsinline
+                disablepictureinpicture
+                @loadeddata="applyRate"
+              ></video>
+              <span v-else class="video-missing">Chưa có video</span>
+              <span class="option-letter option-letter--video" aria-hidden="true">{{ LETTERS[i] }}</span>
             </button>
           </div>
         </template>
@@ -120,12 +162,13 @@
             <span v-else class="review-status">Chưa chấm</span>
           </div>
 
-          <div v-if="q.signVideoUrl" class="prompt-video prompt-video--sm">
+          <div v-if="kindOf(q.questionType) === 'video-to-word' && q.signVideoUrl" class="prompt-video prompt-video--sm">
             <video :src="q.signVideoUrl" :poster="q.signThumbnailUrl" controls playsinline></video>
           </div>
           <p v-if="q.promptVi" class="prompt-text">{{ q.promptVi }}</p>
 
-          <ul class="review-options">
+          <!-- Đã nộp bài: hiện cả chữ lẫn video của từng lựa chọn để người học đối chiếu -->
+          <ul class="review-options" :class="{ 'review-options--video': kindOf(q.questionType) === 'word-to-video' }">
             <li
               v-for="(opt, oi) in q.options"
               :key="oi"
@@ -135,6 +178,14 @@
                 'is-your-wrong-pick': oi === attempt.selectedOptionIndexes?.[i] && oi !== q.correctOptionIndex,
               }"
             >
+              <video
+                v-if="kindOf(q.questionType) === 'word-to-video' && opt.videoUrl"
+                :src="opt.videoUrl"
+                muted
+                loop
+                playsinline
+                controls
+              ></video>
               <span>{{ opt.label }}</span>
               <span v-if="oi === attempt.selectedOptionIndexes?.[i]" class="pick-tag">Bạn chọn</span>
               <span v-if="oi === q.correctOptionIndex" class="pick-tag pick-tag--correct">Đáp án đúng</span>
@@ -152,7 +203,8 @@
   import { ref, computed, onMounted } from 'vue';
   import { useRoute } from 'vue-router';
   import SiIcon from '@/components/SiIcon.vue';
-  import { getAttemptApi, submitAttemptApi, type QuizAttempt } from '@/api/quiz';
+  import { getAttemptApi, submitAttemptApi, type QuestionType, type QuizAttempt } from '@/api/quiz';
+  import { useA11yStore } from '@/stores/a11y';
 
   defineOptions({ name: 'QuizAttemptView' });
 
@@ -166,8 +218,19 @@
   const currentIndex = ref(0);
   const answers = ref<(number | null)[]>([]);
 
+  const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  const a11y = useA11yStore();
+
+  /**
+   * Câu trắc nghiệm chỉ có hai cơ chế. Trắc nghiệm / ghép đôi của đề cũ được máy chủ gộp về
+   * cơ chế gần nhất; ở đây gộp thêm một lần nữa cho lượt thi cũ còn lưu dạng cũ.
+   */
+  function kindOf(type: QuestionType): 'video-to-word' | 'word-to-video' {
+    return type === 'WORD_TO_VIDEO' || type === 'MATCHING' ? 'word-to-video' : 'video-to-word';
+  }
+
   const currentQuestion = computed(() => attempt.value!.questions[currentIndex.value]!);
-  const hasVideoOptions = computed(() => currentQuestion.value.options.some((o) => o.videoUrl));
+  const currentKind = computed(() => kindOf(currentQuestion.value.questionType));
   const percentScore = computed(() => {
     if (!attempt.value?.maxScore) return 0;
     return Math.round(((attempt.value.score ?? 0) * 100) / attempt.value.maxScore);
@@ -179,10 +242,9 @@
     return q.correctOptionIndex !== undefined && picked === q.correctOptionIndex;
   }
 
-  function replay(e: Event) {
-    const el = e.target as HTMLVideoElement;
-    el.currentTime = 0;
-    void el.play();
+  /** Theo tốc độ phát người học chọn ở thanh trợ năng (0.5x / 0.75x / 1x) */
+  function applyRate(e: Event) {
+    (e.target as HTMLVideoElement).playbackRate = a11y.playbackRate;
   }
 
   async function handleSubmit() {
@@ -306,9 +368,64 @@
     cursor: pointer;
     text-align: center;
   }
+  .option-btn {
+    position: relative;
+  }
+  .option-btn--word {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 56px;
+    padding: 10px 14px;
+    font-size: 17px;
+    text-align: left;
+  }
   .option-btn video {
     width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
     border-radius: 8px;
+    background: var(--sk-stage, #eaf0f4);
+  }
+  .option-letter {
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--si-primary-light);
+    color: var(--si-primary);
+    font-size: 14px;
+    font-weight: 800;
+  }
+  /* Chữ cái đánh dấu lựa chọn nằm góc video, không che bàn tay ở giữa khung */
+  .option-letter--video {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
+  .option-btn.is-selected .option-letter {
+    background: var(--si-primary);
+    color: #fff;
+  }
+  .prompt-text--big {
+    font-size: 22px;
+    margin-top: 0;
+  }
+  .video-missing {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 120px;
+    margin: 0;
+    border-radius: 8px;
+    background: var(--sk-stage, #eaf0f4);
+    color: var(--si-text-muted);
+    font-size: 14px;
+    font-weight: 600;
   }
   .option-btn.is-selected {
     border-color: var(--si-primary);
@@ -483,6 +600,24 @@
     border-radius: 8px;
     border: 2px solid var(--si-border);
     font-size: 14px;
+  }
+  .review-options--video {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .review-options--video .review-option {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .review-options--video .review-option video {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--sk-stage, #eaf0f4);
+  }
+  .review-options--video .pick-tag {
+    margin-left: 0;
   }
   .review-option.is-correct-answer {
     border-color: var(--si-success, #2e9e6b);

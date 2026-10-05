@@ -31,12 +31,7 @@ public interface LessonItemRepository
     @Query("SELECT i.sign.id FROM LessonItem i WHERE i.lesson.id = :lessonId AND i.sign.id IS NOT NULL")
     List<UUID> findSignIdsByLessonId(UUID lessonId);
 
-    /**
-     * Từ đã nằm trong một khoá KHÁC khoá đang soạn.
-     *
-     * Quy ước: mỗi từ chỉ thuộc đúng một khoá học, để người học đi hết các khoá
-     * không gặp lại cùng một từ ở khoá sau như thể đó là bài mới.
-     */
+    /** Từ đã nằm trong một khoá KHÁC khoá đang soạn */
     @Query("""
             SELECT DISTINCT i.sign.id FROM LessonItem i
             WHERE i.sign.id IS NOT NULL AND i.lesson.course.id <> :courseId
@@ -46,14 +41,26 @@ public interface LessonItemRepository
     /**
      * Từ đã nằm ở một bài KHÁC (trong cùng khoá hay khoá khác đều tính).
      *
-     * Quy ước: mỗi từ chỉ nằm ở đúng một bài trong toàn hệ thống — không lặp giữa
-     * các khoá, cũng không lặp giữa các bài của cùng một khoá.
+     * Một từ ĐƯỢC PHÉP nằm ở nhiều bài (2026-10-05, người dùng chốt) — CMS chỉ gắn cảnh báo
+     * vàng để người soạn biết là đang lặp lại, không chặn.
      */
     @Query("""
             SELECT DISTINCT i.sign.id FROM LessonItem i
             WHERE i.sign.id IS NOT NULL AND i.lesson.id <> :lessonId
             """)
     List<UUID> findSignIdsUsedOutsideLesson(UUID lessonId);
+
+    /**
+     * Bài học khác đang dùng các từ này: [signId, courseId, tên khoá, lessonId, tên bài].
+     * Một truy vấn cho cả trang kết quả tìm kiếm, không tra từng từ.
+     */
+    @Query("""
+            SELECT i.sign.id, c.id, c.titleVi, l.id, l.titleVi
+              FROM LessonItem i JOIN i.lesson l JOIN l.course c
+             WHERE i.sign.id IN :signIds AND l.id <> :lessonId
+             ORDER BY c.displayOrder, c.titleVi, l.displayOrder, l.titleVi
+            """)
+    List<Object[]> findLessonUsages(java.util.Collection<UUID> signIds, UUID lessonId);
 
     /** Mọi từ đã có mặt trong bất kỳ khoá nào - dùng khi sinh khoá tự động */
     @Query("SELECT DISTINCT i.sign.id FROM LessonItem i WHERE i.sign.id IS NOT NULL")

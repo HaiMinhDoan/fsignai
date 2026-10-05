@@ -101,8 +101,8 @@ public class LessonController {
     }
 
     @Operation(summary = "Thêm nhiều từ vựng vào bài học cùng lúc",
-            description = "Mỗi từ chỉ nằm ở đúng một bài trong toàn hệ thống. Bỏ qua: từ đã có sẵn trong bài "
-                    + "(skipped), từ đã ở bài khác của cùng khoá (usedInCourse), từ đã thuộc khoá khác (usedElsewhere).")
+            description = "Bỏ qua từ đã có sẵn trong bài (skipped). Từ đã nằm ở bài khác, cùng khoá hay khoá khác, "
+                    + "VẪN được thêm; usedElsewhere đếm số từ như vậy để giao diện báo lại.")
     @RequireAuth(roles = {RoleType.SYSTEM_ADMIN, RoleType.CONTENT_EDITOR})
     @PostMapping("/lessons/{lessonId}/items/signs")
     public ResponseEntity<ResponseData<Map<String, Integer>>> addSigns(

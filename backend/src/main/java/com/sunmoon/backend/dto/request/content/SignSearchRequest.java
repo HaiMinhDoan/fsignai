@@ -45,10 +45,12 @@ public class SignSearchRequest {
     UUID hideUsedOutsideCourseId;
 
     /**
-     * Đang soạn bài này: ẩn mọi từ đã nằm ở một bài KHÁC (cùng khoá hay khoá khác).
-     * Chặt hơn hideUsedOutsideCourseId - mỗi từ chỉ thuộc đúng một bài.
+     * Đang soạn bài này (ô "Tìm từ vựng để thêm" của CMS):
+     *  • ẩn từ ĐÃ CÓ trong chính bài này — thêm lại cũng chỉ bị bỏ qua
+     *  • từ đã nằm ở bài KHÁC (cùng khoá hay khoá khác) vẫn hiện, kèm lessonUsages để
+     *    giao diện gắn cảnh báo "Đã được sử dụng ở khoá học … bài học …"
      */
-    UUID hideUsedOutsideLessonId;     // tu CHUA cham diem AI duoc
+    UUID forLessonId;
 
     @Builder.Default
     List<SortCriteria> sorts = new ArrayList<>();

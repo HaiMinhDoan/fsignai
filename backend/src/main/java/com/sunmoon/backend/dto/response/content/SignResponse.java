@@ -53,6 +53,12 @@ public class SignResponse {
     // Da co exemplar READY chua - cot "Exemplar" tren bang
     Boolean aiReady;
 
+    /**
+     * Những bài học KHÁC đang dùng từ này. Chỉ có khi tìm kèm forLessonId (soạn bài trong CMS):
+     * từ vẫn chọn được, giao diện gắn cảnh báo vàng để người soạn biết là đang lặp lại.
+     */
+    List<LessonUsageResponse> lessonUsages;
+
     // Chi co o trang chi tiet
     List<SignVideoResponse> videos;
     List<SignRelationResponse> relations;
@@ -70,6 +76,19 @@ public class SignResponse {
         UUID id;
         String slug;
         String nameVi;
+    }
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Getter
+    @Setter
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class LessonUsageResponse {
+        UUID courseId;
+        String courseTitleVi;
+        UUID lessonId;
+        String lessonTitleVi;
     }
 
     @NoArgsConstructor

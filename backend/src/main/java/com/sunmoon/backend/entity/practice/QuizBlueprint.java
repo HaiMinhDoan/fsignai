@@ -74,10 +74,10 @@ public class QuizBlueprint {
     @Column(name = "word_types", columnDefinition = "jsonb")
     private JsonNode wordTypes;
 
-    // {"VIDEO_TO_WORD":5,"WORD_TO_VIDEO":3,"MATCHING":2}
+    // {"VIDEO_TO_WORD":5,"WORD_TO_VIDEO":5} — chỉ còn hai cơ chế câu hỏi (V23)
     @NotNull
     @Type(JsonType.class)
-    @ColumnDefault("'{\"VIDEO_TO_WORD\":5,\"WORD_TO_VIDEO\":3,\"MATCHING\":2}'")
+    @ColumnDefault("'{\"VIDEO_TO_WORD\":5,\"WORD_TO_VIDEO\":5}'")
     @Column(name = "question_type_mix", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
     private JsonNode questionTypeMix = buildDefaultQuestionTypeMix();
@@ -143,8 +143,7 @@ public class QuizBlueprint {
     private static JsonNode buildDefaultQuestionTypeMix() {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put("VIDEO_TO_WORD", 5);
-        node.put("WORD_TO_VIDEO", 3);
-        node.put("MATCHING", 2);
+        node.put("WORD_TO_VIDEO", 5);
         return node;
     }
 }

@@ -26,8 +26,9 @@
 
         <div class="mb-2 text-sm font-medium">Tỉ lệ các dạng câu</div>
         <div class="mb-1 text-xs text-gray-500">
-          Số lượng tương đối giữa các dạng câu trong một đề. Ví dụ 5/3/0/2 nghĩa là cứ 10 câu thì
-          khoảng 5 câu xem video chọn từ, 3 câu đọc từ chọn video, 2 câu ghép đôi.
+          Số lượng tương đối giữa hai dạng câu trong một đề. Ví dụ 5/5 nghĩa là cứ 10 câu thì khoảng
+          5 câu "Đây là ký hiệu của từ gì?" (xem video, chọn từ) và 5 câu "Đâu là ký hiệu của từ …?"
+          (đọc từ, chọn video).
         </div>
         <div class="flex flex-wrap gap-4 mb-4">
           <div v-for="type in MIX_QUESTION_TYPES" :key="type.value" style="width: 180px">
@@ -125,12 +126,11 @@
   const previewLoading = ref(false);
   const previewResult = ref<GenerateQuestionsResult>();
 
-  // Map<QuestionType, number> không có widget dựng sẵn nên soạn thủ công 4 ô số
+  // Map<QuestionType, number> không có widget dựng sẵn nên soạn thủ công từng ô số
+  // Chỉ còn hai cơ chế câu hỏi — trắc nghiệm / ghép đôi đã gộp vào hai dạng này (migration V23)
   const mix = reactive<Record<string, number>>({
     VIDEO_TO_WORD: 5,
-    WORD_TO_VIDEO: 3,
-    MULTIPLE_CHOICE: 0,
-    MATCHING: 2,
+    WORD_TO_VIDEO: 5,
   });
 
   const matchEnough = computed(
@@ -162,9 +162,7 @@
 
     Object.assign(mix, {
       VIDEO_TO_WORD: 5,
-      WORD_TO_VIDEO: 3,
-      MULTIPLE_CHOICE: 0,
-      MATCHING: 2,
+      WORD_TO_VIDEO: 5,
     });
 
     if (isUpdate.value && data?.record?.id) {
