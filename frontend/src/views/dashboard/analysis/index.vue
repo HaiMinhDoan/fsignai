@@ -16,6 +16,30 @@
           <template #icon><Icon icon="ant-design:reload-outlined" /></template>
           Làm mới
         </Button>
+        <Dropdown :trigger="['click']" placement="bottomRight" :disabled="!data">
+          <Button type="primary" :loading="exporting">
+            <template #icon><Icon icon="ant-design:file-excel-outlined" /></template>
+            Xuất Excel
+            <Icon icon="ant-design:down-outlined" :size="12" class="ml-1" />
+          </Button>
+          <template #overlay>
+            <Menu @click="onExport">
+              <MenuItem key="overview">
+                <Icon icon="ant-design:dashboard-outlined" class="mr-2" />Tổng quan chỉ số
+              </MenuItem>
+              <MenuItem key="daily">
+                <Icon icon="ant-design:line-chart-outlined" class="mr-2" />Xu hướng theo ngày
+              </MenuItem>
+              <MenuItem key="traffic">
+                <Icon icon="ant-design:pie-chart-outlined" class="mr-2" />Tính năng & nguồn truy cập
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem key="users">
+                <Icon icon="ant-design:team-outlined" class="mr-2" />Thống kê người dùng
+              </MenuItem>
+            </Menu>
+          </template>
+        </Dropdown>
       </div>
     </div>
 
@@ -141,16 +165,20 @@
   import type { EChartsOption } from 'echarts';
   import { computed, onMounted, ref, watch } from 'vue';
   // Dự án không tự đăng ký component Ant Design — import ngay trong file (xem UserDetailDrawer.vue)
-  import { Alert, Button, Card, Empty, Radio, Spin, Tooltip } from 'ant-design-vue';
+  import { Alert, Button, Card, Dropdown, Empty, Menu, Radio, Spin, Tooltip } from 'ant-design-vue';
+  import { useMessage } from '@/hooks/web/useMessage';
+  import { exportDaily, exportOverview, exportTraffic, exportUserStats } from './exportExcel';
   import Icon from '@/components/Icon/Icon.vue';
   import { useRootSetting } from '@/hooks/setting/useRootSetting';
-  import { dashboardApi, type DashboardModel, type NamedValue } from '@/api/dashboard';
+  import { dashboardApi, userStatsApi, type DashboardModel, type NamedValue } from '@/api/dashboard';
   import KpiTile from './components/KpiTile.vue';
   import DashChart from './components/DashChart.vue';
 
   defineOptions({ name: 'Analysis' });
 
   const RadioGroup = Radio.Group;
+  const MenuItem = Menu.Item;
+  const MenuDivider = Menu.Divider;
   const RadioButton = Radio.Button;
 
   const RANGES = [
@@ -220,6 +248,35 @@
       surface: dark ? '#151515' : '#ffffff',
     };
   });
+
+  // ---------------------------------------------------------------- xuất Excel
+
+  const exporting = ref(false);
+  const { createMessage } = useMessage();
+
+  const routeName = (n: string | null) => ROUTE_LABEL[n ?? ''] ?? n ?? 'Khác';
+  const deviceName = (n: string | null) => DEVICE_LABEL[n ?? ''] ?? n ?? '—';
+  const kindName = (n: string | null) => KIND_LABEL[n ?? ''] ?? n ?? '—';
+
+  async function onExport({ key }: { key: string | number }) {
+    if (!data.value || exporting.value) return;
+    exporting.value = true;
+    try {
+      if (key === 'overview') await exportOverview(data.value);
+      else if (key === 'daily') await exportDaily(data.value);
+      else if (key === 'traffic') await exportTraffic(data.value, { route: routeName, device: deviceName, kind: kindName });
+      else if (key === 'users') {
+        // Số liệu từng người lấy riêng từ máy chủ (không nằm trong dữ liệu Dashboard)
+        const rows = await userStatsApi();
+        await exportUserStats(rows, kindName);
+        createMessage.success(`Đã xuất thống kê ${rows.length.toLocaleString('vi-VN')} người dùng`);
+      }
+    } catch (e) {
+      createMessage.error((e as Error)?.message || 'Xuất Excel không thành công');
+    } finally {
+      exporting.value = false;
+    }
+  }
 
   async function load() {
     loading.value = true;

@@ -5,6 +5,8 @@ import com.sunmoon.backend.dto.response.analytics.DashboardResponse;
 import com.sunmoon.backend.dto.response.analytics.DashboardResponse.DailyPoint;
 import com.sunmoon.backend.dto.response.analytics.DashboardResponse.Kpi;
 import com.sunmoon.backend.dto.response.analytics.DashboardResponse.NamedValue;
+import com.sunmoon.backend.dto.response.analytics.UserStatResponse;
+import com.sunmoon.backend.service.AuditLogService;
 import com.sunmoon.backend.repository.AnalyticsQueryRepository;
 import com.sunmoon.backend.service.AnalyticsService;
 import com.sunmoon.backend.service.RedisService;
@@ -47,6 +49,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     private final AnalyticsQueryRepository analytics;
     private final RedisService redisService;
+    private final AuditLogService auditLogService;
 
     // ==================== GHI LƯỢT XEM ====================
 
@@ -165,6 +168,44 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                 .build())
                         .toList())
                 .build();
+    }
+
+    // ==================== THỐNG KÊ TỪNG NGƯỜI DÙNG ====================
+
+    @Override
+    @Transactional
+    public List<UserStatResponse> userStats(UUID exportedBy) {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<UserStatResponse> rows = analytics.userStats().stream().map(r -> {
+            OffsetDateTime premiumUntil = toOffset(r[5]);
+            return UserStatResponse.builder()
+                    .userId((UUID) r[0])
+                    .fullName((String) r[1])
+                    .email((String) r[2])
+                    .accountKind((String) r[3])
+                    .roles((String) r[4])
+                    .premium(premiumUntil != null && premiumUntil.isAfter(now))
+                    .createdAt(toOffset(r[6]))
+                    .lastLoginAt(toOffset(r[7]))
+                    .minutesStudied(num(r[8]))
+                    .studyDays(num(r[9]))
+                    .lastStudyDate((String) r[10])
+                    .lessonsCompleted(num(r[11]))
+                    .signsReviewed(num(r[12]))
+                    .quizzesTaken(num(r[13]))
+                    .aiChecksDone(num(r[14]))
+                    .coursesCompleted(num(r[15]))
+                    .coursesInProgress(num(r[16]))
+                    .pageViews(num(r[17]))
+                    .sessions(num(r[18]))
+                    .gameCornerVisits(num(r[19]))
+                    .lastVisitAt(toOffset(r[20]))
+                    .build();
+        }).toList();
+        // File có họ tên + email của mọi người dùng: ghi lại ai đã tải, lúc nào
+        auditLogService.record(exportedBy, "dashboard.export.user_stats", "users", null,
+                null, java.util.Map.of("rows", rows.size()));
+        return rows;
     }
 
     // ==================== riêng ====================

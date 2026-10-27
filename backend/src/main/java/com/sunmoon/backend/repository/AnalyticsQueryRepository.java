@@ -294,6 +294,67 @@ public class AnalyticsQueryRepository {
                 .getResultList();
     }
 
+    // ==================== THỐNG KÊ TỪNG NGƯỜI DÙNG ====================
+
+    /**
+     * Mỗi người dùng một dòng, số liệu từ trước tới nay:
+     * [id, họ tên, email, loại TK, vai trò, premium_until, ngày tạo, đăng nhập gần nhất,
+     *  phút học, số ngày học, ngày học gần nhất, bài học hoàn thành, lượt ôn từ, bài kiểm tra, lượt chấm AI,
+     *  khoá đã xong, khoá đang học, lượt xem trang, số phiên, lượt vào Góc trò chơi, lần truy cập gần nhất]
+     *
+     * "Khoá đã xong" tính thẳng từ bài học: đã hoàn thành MỌI bài đang xuất bản của khoá đó. Không đọc
+     * user_course_progress vì bảng đó chỉ được dựng lại khi người học bấm qua bài trên web.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Object[]> userStats() {
+        return em.createNativeQuery("""
+                        WITH course_total AS (
+                            SELECT l.course_id, count(*) AS n
+                              FROM lessons l JOIN courses c ON c.id = l.course_id
+                             WHERE l.is_published AND c.is_published
+                             GROUP BY 1
+                        ), course_done AS (
+                            SELECT p.user_id, l.course_id, count(*) AS done
+                              FROM user_lesson_progress p JOIN lessons l ON l.id = p.lesson_id
+                             WHERE p.status = 'COMPLETED' AND l.is_published
+                             GROUP BY 1, 2
+                        ), courses AS (
+                            SELECT cd.user_id,
+                                   count(*) FILTER (WHERE cd.done >= ct.n) AS completed,
+                                   count(*) FILTER (WHERE cd.done <  ct.n) AS in_progress
+                              FROM course_done cd JOIN course_total ct ON ct.course_id = cd.course_id
+                             GROUP BY 1
+                        ), lessons_done AS (
+                            SELECT user_id, count(*) AS n FROM user_lesson_progress WHERE status = 'COMPLETED' GROUP BY 1
+                        ), act AS (
+                            SELECT user_id, sum(minutes_studied) AS minutes, count(*) AS days, max(activity_date) AS last_day,
+                                   sum(signs_reviewed) AS reviews, sum(quizzes_taken) AS quizzes, sum(ai_checks_done) AS ai
+                              FROM daily_activity GROUP BY 1
+                        ), pv AS (
+                            SELECT user_id, count(*) AS views, count(DISTINCT session_id) AS sessions,
+                                   count(*) FILTER (WHERE route_name = 'games') AS games, max(created_at) AS last_visit
+                              FROM page_views WHERE user_id IS NOT NULL GROUP BY 1
+                        ), roles AS (
+                            SELECT ur.user_id, string_agg(r.code, ', ' ORDER BY r.code) AS codes
+                              FROM user_roles ur JOIN roles r ON r.id = ur.role_id GROUP BY 1
+                        )
+                        SELECT u.id, u.full_name, u.email, u.account_kind, roles.codes, u.premium_until,
+                               u.created_at, u.last_login_at,
+                               COALESCE(act.minutes, 0), COALESCE(act.days, 0), to_char(act.last_day, 'YYYY-MM-DD'),
+                               COALESCE(lessons_done.n, 0), COALESCE(act.reviews, 0), COALESCE(act.quizzes, 0), COALESCE(act.ai, 0),
+                               COALESCE(courses.completed, 0), COALESCE(courses.in_progress, 0),
+                               COALESCE(pv.views, 0), COALESCE(pv.sessions, 0), COALESCE(pv.games, 0), pv.last_visit
+                          FROM users u
+                          LEFT JOIN act ON act.user_id = u.id
+                          LEFT JOIN lessons_done ON lessons_done.user_id = u.id
+                          LEFT JOIN courses ON courses.user_id = u.id
+                          LEFT JOIN pv ON pv.user_id = u.id
+                          LEFT JOIN roles ON roles.user_id = u.id
+                         ORDER BY COALESCE(act.minutes, 0) DESC, COALESCE(pv.views, 0) DESC, u.created_at
+                        """)
+                .getResultList();
+    }
+
     // ==================== riêng ====================
 
     /**

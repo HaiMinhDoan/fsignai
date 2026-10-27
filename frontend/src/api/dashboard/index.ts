@@ -77,5 +77,37 @@ export interface DashboardModel {
   recentPayments: { fullName: string; email: string; amount: number; paidAt: string; paymentCode: string }[];
 }
 
+/** Một dòng "Thống kê người dùng" — số liệu từ trước tới nay */
+export interface UserStatModel {
+  userId: string;
+  fullName: string;
+  email: string;
+  accountKind: string | null;
+  roles?: string;
+  premium: boolean;
+  createdAt?: string;
+  lastLoginAt?: string;
+
+  minutesStudied: number;
+  studyDays: number;
+  lastStudyDate?: string;
+  lessonsCompleted: number;
+  signsReviewed: number;
+  quizzesTaken: number;
+  aiChecksDone: number;
+
+  coursesCompleted: number;
+  coursesInProgress: number;
+
+  pageViews: number;
+  sessions: number;
+  gameCornerVisits: number;
+  lastVisitAt?: string;
+}
+
 export const dashboardApi = (days: number) =>
   defHttp.get<DashboardModel>({ url: '/api/v1/admin/dashboard', params: { days } });
+
+/** Thống kê từng người dùng để xuất Excel (mỗi lần tải được ghi Nhật ký Audit) */
+export const userStatsApi = () =>
+  defHttp.get<UserStatModel[]>({ url: '/api/v1/admin/dashboard/user-stats', timeout: 60_000 });

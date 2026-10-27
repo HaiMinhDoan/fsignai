@@ -7,6 +7,7 @@ import com.sunmoon.backend.dto.AuthInfo;
 import com.sunmoon.backend.dto.request.analytics.PageViewRequest;
 import com.sunmoon.backend.dto.response.ResponseData;
 import com.sunmoon.backend.dto.response.analytics.DashboardResponse;
+import com.sunmoon.backend.dto.response.analytics.UserStatResponse;
 import com.sunmoon.backend.service.AnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.List;
 
 @Tag(name = "Thống kê", description = "Ghi lượt xem trang của web học và số liệu Dashboard CMS")
 @RestController
@@ -47,6 +49,22 @@ public class AnalyticsController {
                 .status(HttpStatus.OK.value())
                 .messageCode("DASHBOARD_SUCCESS")
                 .data(analyticsService.dashboard(days))
+                .lang(SecurityContextHolder.getLang())
+                .path(SecurityContextHolder.getPath())
+                .timestamp(new Date())
+                .build());
+    }
+
+    @Operation(summary = "Thống kê từng người dùng để xuất Excel",
+            description = "Mỗi người dùng một dòng, số liệu từ trước tới nay: thời gian học, bài học và khoá học đã "
+                    + "hoàn thành, lượt xem trang, lượt vào Góc trò chơi... Mỗi lần tải được ghi vào Nhật ký Audit.")
+    @RequireAuth(roles = {RoleType.SYSTEM_ADMIN})
+    @GetMapping("/admin/dashboard/user-stats")
+    public ResponseEntity<ResponseData<List<UserStatResponse>>> userStats() {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseData.<List<UserStatResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .messageCode("DASHBOARD_USER_STATS_SUCCESS")
+                .data(analyticsService.userStats(SecurityContextHolder.getAuthInfo().getId()))
                 .lang(SecurityContextHolder.getLang())
                 .path(SecurityContextHolder.getPath())
                 .timestamp(new Date())
